@@ -1,27 +1,122 @@
-import { Stack } from 'expo-router';
-import { Text } from 'heroui-native';
-import { View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Alert, View } from 'react-native';
+import { differenceInCalendarDays, parseISO } from 'date-fns';
+import { Button, Card, Chip, Typography } from 'heroui-native';
+import { router } from 'expo-router';
+import { CalendarDays, ChevronRight, Plus } from 'lucide-react-native';
 
-export default function Home() {
-  return <ScreenContent />;
-}
+import { EmptyProfile } from '@/components/EmptyProfile';
+import { MedicalDisclaimer, PrivacyNote } from '@/components/HealthNotices';
+import { Screen } from '@/components/Screen';
+import { displayDate, displayShortDate, todayISO } from '@/lib/date-utils';
+import { useHealthStore } from '@/lib/health-store';
+import { calculatePrediction } from '@/lib/prediction';
 
-function ScreenContent() {
+export default function HomeScreen() {
+  const profile = useHealthStore((state) => state.profile);
+  const periods = useHealthStore((state) => state.periods);
+  const labs = useHealthStore((state) => state.labs);
+  const addPeriod = useHealthStore((state) => state.addPeriod);
+  const [saving, setSaving] = useState(false);
+  const prediction = useMemo(
+    () => (profile ? calculatePrediction(profile, periods, labs) : null),
+    [profile, periods, labs],
+  );
+
+  if (!profile || !prediction) return <EmptyProfile />;
+
+  const latestStart = [profile.lastPeriodStartDate, ...periods.map((item) => item.startDate)]
+    .sort()
+    .at(-1)!;
+  const cycleDay = Math.max(
+    1,
+    differenceInCalendarDays(parseISO(todayISO()), parseISO(latestStart)) + 1,
+  );
+  const alreadyLogged = periods.some((item) => item.startDate === todayISO());
+
+  const startToday = async () => {
+    if (alreadyLogged) {
+      Alert.alert('Already logged', 'A period start is already recorded for today.');
+      return;
+    }
+    setSaving(true);
+    await addPeriod({
+      id: `period-${Date.now()}`,
+      startDate: todayISO(),
+      flowIntensity: 3,
+      symptoms: {},
+      createdAt: new Date().toISOString(),
+    });
+    setSaving(false);
+    Alert.alert(
+      'Period started',
+      'Today is now cycle day 1. You can add flow and symptoms in Log.',
+    );
+  };
+
   return (
-    <View className="bg-background p-safe flex basis-full flex-col">
-      <Stack.Screen
-        options={{
-          title: 'Home',
-        }}
-      />
-      <View className="flex-1 items-center justify-center">
-        <Text.Heading type="h2" align="center" className="mb-4">
-          Welcome to Your App
-        </Text.Heading>
-        <Text.Paragraph align="center" color="muted">
-          This is your starting point. Start building something amazing!
-        </Text.Paragraph>
+    <Screen eyebrow="Today" title={`Cycle day ${cycleDay}`} subtitle={displayDate(todayISO())}>
+      <Card className="overflow-hidden p-0">
+        <View className="bg-accent gap-4 p-5">
+          <View className="flex-row items-center justify-between">
+            <Typography className="text-accent-foreground font-semibold">
+              Next period estimate
+            </Typography>
+            <CalendarDays color="#fff8f6" size={22} />
+          </View>
+          <Typography type="h2" className="text-accent-foreground">
+            {displayShortDate(prediction.rangeStart)} – {displayShortDate(prediction.rangeEnd)}
+          </Typography>
+          <Typography className="text-accent-foreground text-sm">
+            A range reflects normal cycle-to-cycle variation.
+          </Typography>
+        </View>
+        <Button
+          variant="ghost"
+          className="m-3 justify-between"
+          onPress={() => router.push('/prediction')}
+        >
+          <Button.Label>See how this was calculated</Button.Label>
+          <ChevronRight size={18} color="#713a3e" />
+        </Button>
+      </Card>
+
+      <Button size="lg" isDisabled={saving || alreadyLogged} onPress={startToday}>
+        <Plus size={20} color="#fff8f6" />
+        <Button.Label>
+          {alreadyLogged ? 'Period start logged today' : 'Period started today'}
+        </Button.Label>
+      </Button>
+
+      <View className="flex-row gap-3">
+        <Card className="flex-1 gap-2 p-4">
+          <Typography className="text-muted text-xs">Pattern basis</Typography>
+          <Typography className="font-semibold">
+            {prediction.cyclesUsed === 0
+              ? 'Condition estimate'
+              : `${prediction.cyclesUsed} own cycle${prediction.cyclesUsed === 1 ? '' : 's'}`}
+          </Typography>
+        </Card>
+        <Card className="flex-1 gap-2 p-4">
+          <Typography className="text-muted text-xs">Estimated ovulation</Typography>
+          <Typography className="font-semibold">
+            {displayShortDate(prediction.ovulationDate)}
+          </Typography>
+        </Card>
       </View>
-    </View>
+
+      {prediction.cyclesAvailable > prediction.cyclesUsed ? (
+        <Chip color="warning" variant="soft">
+          <Chip.Label>
+            {prediction.cyclesAvailable - prediction.cyclesUsed} likely mistaken cycle log excluded
+          </Chip.Label>
+        </Chip>
+      ) : null}
+      <PrivacyNote>
+        Cycle and symptom records remain on this device. Nothing is shared unless you choose to
+        export it.
+      </PrivacyNote>
+      <MedicalDisclaimer />
+    </Screen>
   );
 }

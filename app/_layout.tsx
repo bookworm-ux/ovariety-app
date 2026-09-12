@@ -13,7 +13,7 @@ import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
 import { useEffect } from 'react';
 import * as DevClient from 'expo-dev-client';
-import { HeroUINativeProvider } from 'heroui-native';
+import { HeroUINativeProvider, useThemeColor } from 'heroui-native';
 import { Uniwind } from 'uniwind';
 import {
   ErrorBoundary as ExpoErrorBoundary,
@@ -22,10 +22,10 @@ import {
   Stack,
 } from 'expo-router';
 
-import { initPostHog } from '@/lib/posthog';
 import { registerServiceWorker } from '@/lib/registerServiceWorker';
 import { reportErrorToParent } from '@/lib/reportPreviewError';
 import { InstallPrompt } from '@/components/InstallPrompt';
+import { useHealthStore } from '@/lib/health-store';
 
 /**
  * Custom ErrorBoundary that reports React render errors to the parent window (Bilt preview iframe)
@@ -49,12 +49,19 @@ Uniwind.setTheme('light');
 void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const background = useThemeColor('background');
+  const hydrateHealthData = useHealthStore((state) => state.hydrate);
+  const hydrated = useHealthStore((state) => state.hydrated);
   const [loaded, error] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
   });
+
+  useEffect(() => {
+    if (!hydrated) void hydrateHealthData();
+  }, [hydrateHealthData, hydrated]);
 
   // Report uncaught JS errors and unhandled promise rejections to parent (Bilt preview iframe)
   useEffect(() => {
@@ -119,12 +126,6 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (Platform.OS === 'web') {
-      initPostHog();
-    }
-  }, []);
-
-  useEffect(() => {
     registerServiceWorker();
   }, []);
 
@@ -141,8 +142,17 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <HeroUINativeProvider>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ title: 'Habits', headerShown: false }} />
+        <Stack
+          screenOptions={{
+            headerShadowVisible: false,
+            contentStyle: { backgroundColor: background },
+          }}
+        >
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding" options={{ title: 'Set up', headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ title: 'CycleWise', headerShown: false }} />
+          <Stack.Screen name="labs" options={{ title: 'Lab values', presentation: 'modal' }} />
+          <Stack.Screen name="prediction" options={{ title: 'Your prediction' }} />
         </Stack>
         <InstallPrompt />
       </HeroUINativeProvider>

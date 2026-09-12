@@ -1,4 +1,4 @@
-import { Home } from 'lucide-react-native';
+import { ClipboardPlus, FileText, Home, Settings } from 'lucide-react-native';
 import { Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useThemeColor } from 'heroui-native';
@@ -24,10 +24,7 @@ export default function TabLayout() {
           headerTitleStyle: { color: foreground },
           headerShadowVisible: false,
           sceneStyle: { backgroundColor: background },
-          tabBarStyle: {
-            backgroundColor: background,
-            borderTopColor: border,
-          },
+          tabBarStyle: { backgroundColor: background, borderTopColor: border },
           tabBarActiveTintColor: accent,
           tabBarInactiveTintColor: muted,
         }}
@@ -35,8 +32,29 @@ export default function TabLayout() {
         <Tabs.Screen
           name="index"
           options={{
-            title: 'Home',
+            title: 'Today',
             tabBarIcon: ({ color, size }) => <Home color={color} size={size ?? 24} />,
+          }}
+        />
+        <Tabs.Screen
+          name="log"
+          options={{
+            title: 'Log',
+            tabBarIcon: ({ color, size }) => <ClipboardPlus color={color} size={size ?? 24} />,
+          }}
+        />
+        <Tabs.Screen
+          name="report"
+          options={{
+            title: 'Report',
+            tabBarIcon: ({ color, size }) => <FileText color={color} size={size ?? 24} />,
+          }}
+        />
+        <Tabs.Screen
+          name="settings"
+          options={{
+            title: 'Settings',
+            tabBarIcon: ({ color, size }) => <Settings color={color} size={size ?? 24} />,
           }}
         />
       </Tabs>
