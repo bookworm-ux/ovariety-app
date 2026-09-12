@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Alert, View } from 'react-native';
 import { differenceInCalendarDays, parseISO } from 'date-fns';
-import { Button, Card, Chip, Typography } from 'heroui-native';
+import { Button, Card, Chip, Typography, useThemeColor } from 'heroui-native';
 import { router } from 'expo-router';
 import { CalendarDays, ChevronRight, Plus } from 'lucide-react-native';
 
@@ -13,6 +13,7 @@ import { useHealthStore } from '@/lib/health-store';
 import { calculatePrediction } from '@/lib/prediction';
 
 export default function HomeScreen() {
+  const [accentForeground, foreground] = useThemeColor(['accent-foreground', 'foreground']);
   const profile = useHealthStore((state) => state.profile);
   const periods = useHealthStore((state) => state.periods);
   const labs = useHealthStore((state) => state.labs);
@@ -57,17 +58,15 @@ export default function HomeScreen() {
   return (
     <Screen eyebrow="Today" title={`Cycle day ${cycleDay}`} subtitle={displayDate(todayISO())}>
       <Card className="overflow-hidden p-0">
-        <View className="bg-accent gap-4 p-5">
+        <View className="bg-surface-secondary gap-4 p-5">
           <View className="flex-row items-center justify-between">
-            <Typography className="text-accent-foreground font-semibold">
-              Next period estimate
-            </Typography>
-            <CalendarDays color="#fff8f6" size={22} />
+            <Typography className="text-foreground font-semibold">Next period estimate</Typography>
+            <CalendarDays color={foreground} size={22} />
           </View>
-          <Typography type="h2" className="text-accent-foreground">
+          <Typography type="h2" className="text-foreground">
             {displayShortDate(prediction.rangeStart)} – {displayShortDate(prediction.rangeEnd)}
           </Typography>
-          <Typography className="text-accent-foreground text-sm">
+          <Typography className="text-muted text-sm">
             A range reflects normal cycle-to-cycle variation.
           </Typography>
         </View>
@@ -77,12 +76,12 @@ export default function HomeScreen() {
           onPress={() => router.push('/prediction')}
         >
           <Button.Label>See how this was calculated</Button.Label>
-          <ChevronRight size={18} color="#713a3e" />
+          <ChevronRight size={18} color={foreground} />
         </Button>
       </Card>
 
       <Button size="lg" isDisabled={saving || alreadyLogged} onPress={startToday}>
-        <Plus size={20} color="#fff8f6" />
+        <Plus size={20} color={accentForeground} />
         <Button.Label>
           {alreadyLogged ? 'Period start logged today' : 'Period started today'}
         </Button.Label>
