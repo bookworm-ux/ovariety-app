@@ -11,12 +11,12 @@ export function PrivacyNote({ children }: PropsWithChildren) {
   );
 }
 
-export function MedicalDisclaimer() {
+export function MedicalDisclaimer({ children }: PropsWithChildren) {
   return (
     <View className="bg-muted/10 rounded-2xl p-4">
       <Typography className="text-muted text-xs leading-5">
-        Predictions and pattern flags are estimates from self-reported data. They are not a
-        diagnosis or medical advice.
+        {children ??
+          'Predictions and pattern flags are estimates from self-reported data. They are not a diagnosis or medical advice.'}
       </Typography>
     </View>
   );

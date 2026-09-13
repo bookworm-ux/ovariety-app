@@ -19,11 +19,26 @@ export function buildReportStats(data: HealthData) {
           lengths.reduce((sum, value) => sum + (value - mean) ** 2, 0) / (lengths.length - 1),
         )
       : undefined;
-  const symptomCounts: Partial<Record<Symptom, number>> = {};
+  const trackedDays = new Set([
+    ...data.periods.map((period) => period.startDate),
+    ...data.dailyLogs.map((log) => log.date),
+  ]).size;
+  const symptomStats: Partial<Record<Symptom, { count: number; averageSeverity: number }>> = {};
+  const symptomLogs = [
+    ...data.periods.map((period) => period.symptoms),
+    ...data.dailyLogs.map((log) => log.symptoms),
+  ];
   for (const symptom of SYMPTOMS) {
-    symptomCounts[symptom] =
-      data.periods.filter((period) => period.symptoms[symptom] !== undefined).length +
-      data.dailyLogs.filter((log) => log.symptoms[symptom] !== undefined).length;
+    const severities = symptomLogs
+      .map((symptoms) => symptoms[symptom])
+      .filter((severity): severity is NonNullable<typeof severity> => severity !== undefined);
+    if (severities.length) {
+      symptomStats[symptom] = {
+        count: severities.length,
+        averageSeverity:
+          severities.reduce((sum, severity) => sum + severity, 0) / severities.length,
+      };
+    }
   }
   const flags: ReportFlag[] = [];
   if (variability !== undefined && variability >= 8) {
@@ -59,7 +74,8 @@ export function buildReportStats(data: HealthData) {
     variability,
     min: lengths.length ? Math.min(...lengths) : undefined,
     max: lengths.length ? Math.max(...lengths) : undefined,
-    symptomCounts,
+    trackedDays,
+    symptomStats,
     flags,
   };
 }

@@ -22,8 +22,8 @@ import {
 import { useHealthStore } from '@/lib/health-store';
 import { buildReportStats } from '@/lib/report';
 
-const closing =
-  'This report is generated from self-reported app data and simple pattern detection. It is not a diagnosis, and is meant to support a conversation with a healthcare provider.';
+const reportDisclaimer =
+  'Symptom frequencies and automated flags summarize self-reported patterns, not clinical significance or findings. This report is not a diagnosis or medical advice.';
 const n = (value?: number) => (value === undefined ? '—' : value.toFixed(1));
 const escapeHtml = (value: string) =>
   value
@@ -64,11 +64,17 @@ export default function ReportScreen() {
       const cycleRows = stats.lengths
         .map((value, index) => `<tr><td>Cycle ${index + 1}</td><td>${value} days</td></tr>`)
         .join('');
-      const symptomRows = SYMPTOMS.filter((key) => stats.symptomCounts[key])
-        .map(
-          (key) =>
-            `<tr><td>${SYMPTOM_LABELS[key]}</td><td>${stats.symptomCounts[key]} logs</td></tr>`,
-        )
+      const symptomRows = SYMPTOMS.flatMap((key) => {
+        const symptom = stats.symptomStats[key];
+        return symptom ? [{ key, ...symptom }] : [];
+      })
+        .sort((a, b) => b.count - a.count)
+        .map(({ key, count, averageSeverity }) => {
+          const severity = Number.isInteger(averageSeverity)
+            ? String(averageSeverity)
+            : averageSeverity.toFixed(1);
+          return `<tr><td>${SYMPTOM_LABELS[key]}</td><td>${count} ${count === 1 ? 'log' : 'logs'} of ${stats.trackedDays} ${stats.trackedDays === 1 ? 'day' : 'days'} tracked, average severity ${severity}</td></tr>`;
+        })
         .join('');
       const labRows = labs
         .flatMap((lab) =>
@@ -86,7 +92,10 @@ export default function ReportScreen() {
             )
             .join('')
         : '<li>No automated pattern flags from the available logs.</li>';
-      const localHtml = `<html><head><style>body{font-family:Arial;color:#4b3a42;background:#f7eff1;padding:30px}h1,h2{color:#a1526e}table{width:100%;border-collapse:collapse;margin:10px 0 22px}td,th{border-bottom:1px solid #d0839f;padding:8px;text-align:left}.note{background:#f6dde5;padding:14px;border-radius:8px}</style></head><body><h1>Cycle health summary</h1><p>Prepared from self-reported records.</p><h2>Profile</h2><table><tr><td>Age</td><td>${profile.age}</td></tr><tr><td>Condition</td><td>${escapeHtml(CONDITION_LABELS[profile.condition])}</td></tr><tr><td>Medications</td><td>${escapeHtml(profile.medications || 'None listed')}</td></tr></table><h2>Cycle statistics</h2><p>${stats.lengths.length} completed cycles · Average ${n(stats.average)} days · Variability ${n(stats.variability)} days · Range ${n(stats.min)}–${n(stats.max)} days</p><table>${cycleRows || '<tr><td>No completed cycle lengths yet.</td></tr>'}</table><h2>Symptom frequency</h2><table>${symptomRows || '<tr><td>No symptoms logged.</td></tr>'}</table><h2>Lab results and displayed ranges</h2><table><tr><th>Date</th><th>Marker</th><th>Value</th><th>Displayed range</th></tr>${labRows || '<tr><td colspan="4">No lab values logged.</td></tr>'}</table><h2>Automated pattern flags</h2><p>These are prompts to discuss, not clinical findings.</p><ul>${flagRows}</ul><p class="note">${closing}</p></body></html>`;
+      const cycleSummary = stats.lengths.length
+        ? `<p>${stats.lengths.length} completed cycles · Average ${n(stats.average)} days · Variability ${n(stats.variability)} days · Range ${n(stats.min)}–${n(stats.max)} days</p><table>${cycleRows}</table>`
+        : '<p>No complete cycles have been logged yet, so predictions are based on the typical pattern for your condition until your own cycles accumulate.</p>';
+      const localHtml = `<html><head><style>body{font-family:Arial;color:#4b3a42;background:#f7eff1;padding:30px}h1,h2{color:#a1526e}table{width:100%;border-collapse:collapse;margin:10px 0 22px}td,th{border-bottom:1px solid #d0839f;padding:8px;text-align:left}.note{background:#f6dde5;padding:14px;border-radius:8px}</style></head><body><h1>Cycle health summary</h1><p>Prepared from self-reported records.</p><h2>Profile</h2><table><tr><td>Age</td><td>${profile.age}</td></tr><tr><td>Condition</td><td>${escapeHtml(CONDITION_LABELS[profile.condition])}</td></tr><tr><td>Medications</td><td>${escapeHtml(profile.medications || 'None listed')}</td></tr></table><h2>Cycle statistics</h2>${cycleSummary}<h2>Symptom frequency</h2><table>${symptomRows || '<tr><td>No symptoms logged.</td></tr>'}</table><h2>Lab results and displayed ranges</h2><table><tr><th>Date</th><th>Marker</th><th>Value</th><th>Displayed range</th></tr>${labRows || '<tr><td colspan="4">No lab values logged.</td></tr>'}</table><h2>Automated pattern flags</h2><ul>${flagRows}</ul><p class="note">${reportDisclaimer}</p></body></html>`;
       const html = cloudHtml ?? localHtml;
       if (Platform.OS === 'web') {
         await Print.printAsync({ html });
@@ -136,17 +145,20 @@ export default function ReportScreen() {
       </Card>
       <Card className="gap-3 p-5">
         <Typography type="h4">Cycle stats</Typography>
-        <View className="flex-row flex-wrap gap-3">
-          <Stat label="Average" value={`${n(stats.average)} days`} />
-          <Stat label="Variability" value={`${n(stats.variability)} days`} />
-          <Stat label="Min / max" value={`${n(stats.min)} / ${n(stats.max)}`} />
-          <Stat label="Cycles logged" value={String(stats.lengths.length)} />
-        </View>
         {stats.lengths.length ? (
-          <CycleLengthBars lengths={stats.lengths} average={stats.average} />
+          <>
+            <View className="flex-row flex-wrap gap-3">
+              <Stat label="Average" value={`${n(stats.average)} days`} />
+              <Stat label="Variability" value={`${n(stats.variability)} days`} />
+              <Stat label="Min / max" value={`${n(stats.min)} / ${n(stats.max)}`} />
+              <Stat label="Cycles logged" value={String(stats.lengths.length)} />
+            </View>
+            <CycleLengthBars lengths={stats.lengths} average={stats.average} />
+          </>
         ) : (
-          <Typography className="text-muted text-sm">
-            Complete another period start to create the first cycle length.
+          <Typography className="text-muted text-sm leading-5">
+            No complete cycles have been logged yet, so predictions are based on the typical pattern
+            for your condition until your own cycles accumulate.
           </Typography>
         )}
       </Card>
@@ -157,13 +169,10 @@ export default function ReportScreen() {
             How often each symptom appears across your period and daily logs.
           </Typography>
         </View>
-        <SymptomFrequencyBars counts={stats.symptomCounts} />
+        <SymptomFrequencyBars stats={stats.symptomStats} trackedDays={stats.trackedDays} />
       </Card>
       <Card className="gap-3 p-5">
         <Typography type="h4">Automated pattern flags</Typography>
-        <Typography className="text-muted text-xs leading-5">
-          Prompts for a healthcare conversation, not findings or diagnoses.
-        </Typography>
         {stats.flags.length ? (
           stats.flags.map((flag, index) => {
             const occurrence = stats.flags
@@ -188,13 +197,12 @@ export default function ReportScreen() {
           </Typography>
         )}
       </Card>
-      <Typography className="text-muted text-xs leading-5">{closing}</Typography>
       <Button size="lg" isDisabled={exporting} onPress={exportPdf}>
         <Button.Label>
           {Platform.OS === 'web' ? 'Print or save as PDF' : 'Export and share PDF'}
         </Button.Label>
       </Button>
-      <MedicalDisclaimer />
+      <MedicalDisclaimer>{reportDisclaimer}</MedicalDisclaimer>
     </Screen>
   );
 }
