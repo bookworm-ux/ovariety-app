@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, View } from 'react-native';
+import { Alert, Image, KeyboardAvoidingView, Platform, View } from 'react-native';
 import { Button, Card, Description, Input, Label, TextField, Typography } from 'heroui-native';
 import { router } from 'expo-router';
 
 import { MedicalDisclaimer, PrivacyNote } from '@/components/HealthNotices';
 import { Screen } from '@/components/Screen';
+import { SafeAreaView } from '@/components/ui/primitives/SafeAreaView';
 import { CONDITION_LABELS, type Condition } from '@/lib/health-types';
 import { useHealthStore } from '@/lib/health-store';
 import { isISODate, todayISO } from '@/lib/date-utils';
@@ -14,6 +15,7 @@ const CONDITIONS: Condition[] = ['none', 'pcos', 'hypothyroid', 'hyperthyroid', 
 export default function OnboardingScreen() {
   const existing = useHealthStore((state) => state.profile);
   const saveProfile = useHealthStore((state) => state.saveProfile);
+  const [step, setStep] = useState<'welcome' | 'profile'>('welcome');
   const [age, setAge] = useState(existing?.age?.toString() ?? '');
   const [height, setHeight] = useState(existing?.heightCm?.toString() ?? '');
   const [weight, setWeight] = useState(existing?.weightKg?.toString() ?? '');
@@ -48,6 +50,35 @@ export default function OnboardingScreen() {
     setSaving(false);
     router.replace('/(tabs)');
   };
+
+  if (step === 'welcome') {
+    return (
+      <SafeAreaView className="flex-1" style={{ backgroundColor: '#FDF3F6' }}>
+        <View className="flex-1 px-6 pt-10 pb-6">
+          <View className="items-center">
+            <Image
+              source={require('@/assets/ovary-wordmark.png')}
+              resizeMode="contain"
+              accessibilityLabel="Ovary"
+              style={{ width: 260, height: 220 }}
+            />
+            <Typography className="text-foreground max-w-sm text-center text-3xl leading-10 font-semibold">
+              Your cycle, without the 28-day assumption.
+            </Typography>
+            <Typography className="text-muted mt-4 max-w-sm text-center text-base leading-6 font-normal">
+              Most apps assume a 28-day cycle. Yours might not be one.
+            </Typography>
+          </View>
+
+          <View className="flex-1" />
+
+          <Button size="lg" onPress={() => setStep('profile')}>
+            <Button.Label>Get started</Button.Label>
+          </Button>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
