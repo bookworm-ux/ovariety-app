@@ -7,6 +7,7 @@ import { CalendarDays, ChevronRight, Plus } from 'lucide-react-native';
 
 import { EmptyProfile } from '@/components/EmptyProfile';
 import { MedicalDisclaimer, PrivacyNote } from '@/components/HealthNotices';
+import { PredictionRangeTimeline } from '@/components/PredictionRangeTimeline';
 import { Screen } from '@/components/Screen';
 import { displayDate, displayShortDate, todayISO } from '@/lib/date-utils';
 import { useHealthStore } from '@/lib/health-store';
@@ -69,6 +70,12 @@ export default function HomeScreen() {
           <Typography className="text-muted text-sm">
             A range reflects normal cycle-to-cycle variation.
           </Typography>
+          <PredictionRangeTimeline
+            ovulationDate={prediction.ovulationDate}
+            predictedDate={prediction.predictedDate}
+            rangeStart={prediction.rangeStart}
+            rangeEnd={prediction.rangeEnd}
+          />
         </View>
         <Button
           variant="ghost"

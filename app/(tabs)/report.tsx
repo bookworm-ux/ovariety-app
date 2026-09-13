@@ -5,9 +5,11 @@ import { router } from 'expo-router';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
+import { CycleLengthBars } from '@/components/CycleLengthBars';
 import { EmptyProfile } from '@/components/EmptyProfile';
 import { MedicalDisclaimer } from '@/components/HealthNotices';
 import { Screen } from '@/components/Screen';
+import { SymptomFrequencyBars } from '@/components/SymptomFrequencyBars';
 import { bilt } from '@/lib/bilt';
 import { useCloudSyncStore } from '@/lib/cloud-sync';
 import {
@@ -44,7 +46,6 @@ export default function ReportScreen() {
     [profile, periods, dailyLogs, labs],
   );
   if (!profile || !stats) return <EmptyProfile />;
-  const maxLength = Math.max(...stats.lengths, 1);
 
   const exportPdf = async () => {
     setExporting(true);
@@ -142,33 +143,16 @@ export default function ReportScreen() {
           <Stat label="Cycles logged" value={String(stats.lengths.length)} />
         </View>
         {stats.lengths.length ? (
-          <View className="mt-2 h-36 flex-row items-end gap-2">
-            {stats.lengths.map((length, index) => {
-              const occurrence = stats.lengths
-                .slice(0, index)
-                .filter((previousLength) => previousLength === length).length;
-              return (
-                <View key={`${length}-${occurrence}`} className="flex-1 items-center gap-1">
-                  <View
-                    className="bg-accent w-full rounded-t"
-                    style={{ height: Math.max(8, (length / maxLength) * 105) }}
-                  />
-                  <Typography className="text-muted text-[10px]">{length}</Typography>
-                </View>
-              );
-            })}
-          </View>
+          <CycleLengthBars lengths={stats.lengths} average={stats.average} />
         ) : (
           <Typography className="text-muted text-sm">
             Complete another period start to create the first cycle length.
           </Typography>
         )}
       </Card>
-      <Card className="gap-3 p-5">
+      <Card className="gap-4 p-5">
         <Typography type="h4">Symptom frequency</Typography>
-        {SYMPTOMS.filter((key) => stats.symptomCounts[key]).map((key) => (
-          <Row key={key} label={SYMPTOM_LABELS[key]} value={`${stats.symptomCounts[key]} logs`} />
-        ))}
+        <SymptomFrequencyBars counts={stats.symptomCounts} />
         {Object.values(stats.symptomCounts).every((value) => value === 0) ? (
           <Typography className="text-muted text-sm">No symptoms logged yet.</Typography>
         ) : null}

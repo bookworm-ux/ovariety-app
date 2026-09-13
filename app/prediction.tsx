@@ -5,6 +5,7 @@ import { addDays, eachDayOfInterval, format, startOfWeek } from 'date-fns';
 
 import { EmptyProfile } from '@/components/EmptyProfile';
 import { MedicalDisclaimer } from '@/components/HealthNotices';
+import { PredictionRangeTimeline } from '@/components/PredictionRangeTimeline';
 import { Screen } from '@/components/Screen';
 import { displayDate } from '@/lib/date-utils';
 import { CONDITION_LABELS } from '@/lib/health-types';
@@ -32,6 +33,15 @@ export default function PredictionScreen() {
       title={`${displayDate(prediction.rangeStart)} – ${displayDate(prediction.rangeEnd)}`}
       subtitle="This is an estimated 95% range, not a guaranteed date."
     >
+      <Card className="gap-2 p-5">
+        <Typography type="h4">Estimate timeline</Typography>
+        <PredictionRangeTimeline
+          ovulationDate={prediction.ovulationDate}
+          predictedDate={prediction.predictedDate}
+          rangeStart={prediction.rangeStart}
+          rangeEnd={prediction.rangeEnd}
+        />
+      </Card>
       <Card className="gap-3 p-4">
         <View className="flex-row justify-between">
           {WEEKDAYS.map((day) => (
