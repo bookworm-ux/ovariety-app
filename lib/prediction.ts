@@ -24,7 +24,6 @@ export interface PredictionResult {
   ownSpread?: number;
   usedFallbackCycles: boolean;
   pcosPattern?: 'milder' | 'severe';
-  pcosSignals?: { severe: number; available: number };
   explanation: string;
 }
 
@@ -77,47 +76,26 @@ type CyclePrior = {
   mean: number;
   spread: number;
   pcosPattern?: 'milder' | 'severe';
-  pcosSignals?: { severe: number; available: number };
 };
 
 function getPrior(condition: Condition, labs: LabEntry[], cycleLengths: number[]): CyclePrior {
   if (condition === 'pcos') {
-    let available = 0;
-    let severe = 0;
-    const lh = mostRecentValue(labs, 'lh');
-    const fsh = mostRecentValue(labs, 'fsh');
-    const amh = mostRecentValue(labs, 'amh');
-    if (lh !== undefined && fsh !== undefined && fsh !== 0) {
-      available += 1;
-      if (lh / fsh > 2) severe += 1;
-    }
-    if (amh !== undefined) {
-      available += 1;
-      if (amh >= 6) severe += 1;
-    }
-    if (cycleLengths.length > 0) {
-      available += 1;
-      if (cycleLengths.filter((length) => length >= 55).length / cycleLengths.length >= 0.3)
-        severe += 1;
-    }
-    const isSevere = available > 0 && severe > available / 2;
+    const longCycleFraction =
+      cycleLengths.length > 0
+        ? cycleLengths.filter((length) => length >= 55).length / cycleLengths.length
+        : 0;
+    const isSevere = longCycleFraction >= 0.3;
     return {
       mean: isSevere ? 60 : 43,
       spread: isSevere ? 16 : 10,
       pcosPattern: isSevere ? 'severe' : 'milder',
-      pcosSignals: { severe, available },
     };
   }
 
   const prior = { ...BASE_PRIORS[condition] };
   const tsh = mostRecentValue(labs, 'tsh');
-  const ft4 = mostRecentValue(labs, 'ft4');
   if (condition === 'hypothyroid' && tsh !== undefined && tsh > 4) {
     prior.mean += Math.min(15, (tsh - 4) * 0.8);
-  }
-  if (condition === 'hyperthyroid' && tsh !== undefined) {
-    if (ft4 !== undefined && tsh < 0.1 && ft4 > 1.8) prior.spread *= 1.5;
-    else if (tsh < 0.4) prior.spread *= 1.2;
   }
   return prior;
 }
@@ -154,7 +132,7 @@ export function calculatePrediction(
   ]
     .sort()
     .at(-1)!;
-  const predictedDate = addDays(parseISO(latestStart), estimateDays);
+  const predictedDate = addDays(parseISO(latestStart), Math.round(estimateDays));
   const conditionName = profile.condition === 'none' ? 'no selected condition' : profile.condition;
 
   return {
@@ -166,14 +144,13 @@ export function calculatePrediction(
     predictedDate,
     rangeStart: addDays(predictedDate, -confidenceWindowDays),
     rangeEnd: addDays(predictedDate, confidenceWindowDays),
-    ovulationDate: addDays(predictedDate, -12.4),
+    ovulationDate: addDays(predictedDate, -Math.round(12.4)),
     cyclesUsed: n,
     cyclesAvailable: availableIntervals.length,
     ownAverage,
     ownSpread,
     usedFallbackCycles: usedFallback,
     pcosPattern: 'pcosPattern' in prior ? prior.pcosPattern : undefined,
-    pcosSignals: 'pcosSignals' in prior ? prior.pcosSignals : undefined,
     explanation:
       n === 0
         ? `With no completed cycles yet, this range starts from the research-based estimate for ${conditionName}.`
