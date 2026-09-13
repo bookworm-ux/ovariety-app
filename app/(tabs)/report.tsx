@@ -73,7 +73,8 @@ export default function ReportScreen() {
           const severity = Number.isInteger(averageSeverity)
             ? String(averageSeverity)
             : averageSeverity.toFixed(1);
-          return `<tr><td>${SYMPTOM_LABELS[key]}</td><td>${count} ${count === 1 ? 'log' : 'logs'} of ${stats.trackedDays} ${stats.trackedDays === 1 ? 'day' : 'days'} tracked, average severity ${severity}</td></tr>`;
+          const detail = count >= 3 ? `${count} logs · sev ${severity}` : `sev ${severity}`;
+          return `<tr><td>${SYMPTOM_LABELS[key]}</td><td>${detail}</td></tr>`;
         })
         .join('');
       const labRows = labs
@@ -95,7 +96,7 @@ export default function ReportScreen() {
       const cycleSummary = stats.lengths.length
         ? `<p>${stats.lengths.length} completed cycles · Average ${n(stats.average)} days · Variability ${n(stats.variability)} days · Range ${n(stats.min)}–${n(stats.max)} days</p><table>${cycleRows}</table>`
         : '<p>No complete cycles have been logged yet, so predictions are based on the typical pattern for your condition until your own cycles accumulate.</p>';
-      const localHtml = `<html><head><style>body{font-family:Arial;color:#4b3a42;background:#f7eff1;padding:30px}h1,h2{color:#a1526e}table{width:100%;border-collapse:collapse;margin:10px 0 22px}td,th{border-bottom:1px solid #d0839f;padding:8px;text-align:left}.note{background:#f6dde5;padding:14px;border-radius:8px}</style></head><body><h1>Cycle health summary</h1><p>Prepared from self-reported records.</p><h2>Profile</h2><table><tr><td>Age</td><td>${profile.age}</td></tr><tr><td>Condition</td><td>${escapeHtml(CONDITION_LABELS[profile.condition])}</td></tr><tr><td>Medications</td><td>${escapeHtml(profile.medications || 'None listed')}</td></tr></table><h2>Cycle statistics</h2>${cycleSummary}<h2>Symptom frequency</h2><table>${symptomRows || '<tr><td>No symptoms logged.</td></tr>'}</table><h2>Lab results and displayed ranges</h2><table><tr><th>Date</th><th>Marker</th><th>Value</th><th>Displayed range</th></tr>${labRows || '<tr><td colspan="4">No lab values logged.</td></tr>'}</table><h2>Automated pattern flags</h2><ul>${flagRows}</ul><p class="note">${reportDisclaimer}</p></body></html>`;
+      const localHtml = `<html><head><style>body{font-family:Arial;color:#4b3a42;background:#f7eff1;padding:30px}h1,h2{color:#a1526e}table{width:100%;border-collapse:collapse;margin:10px 0 22px}td,th{border-bottom:1px solid #d0839f;padding:8px;text-align:left}.note{background:#f6dde5;padding:14px;border-radius:8px}</style></head><body><h1>Cycle health summary</h1><p>Prepared from self-reported records.</p><h2>Profile</h2><table><tr><td>Age</td><td>${profile.age}</td></tr><tr><td>Condition</td><td>${escapeHtml(CONDITION_LABELS[profile.condition])}</td></tr><tr><td>Medications</td><td>${escapeHtml(profile.medications || 'None listed')}</td></tr></table><h2>Cycle statistics</h2>${cycleSummary}<h2>Symptom frequency</h2><p>Based on ${stats.trackedDays} ${stats.trackedDays === 1 ? 'day' : 'days'} tracked.</p><table>${symptomRows || '<tr><td>No symptoms logged.</td></tr>'}</table><h2>Lab results and displayed ranges</h2><table><tr><th>Date</th><th>Marker</th><th>Value</th><th>Displayed range</th></tr>${labRows || '<tr><td colspan="4">No lab values logged.</td></tr>'}</table><h2>Automated pattern flags</h2><ul>${flagRows}</ul><p class="note">${reportDisclaimer}</p></body></html>`;
       const html = cloudHtml ?? localHtml;
       if (Platform.OS === 'web') {
         await Print.printAsync({ html });
@@ -166,7 +167,8 @@ export default function ReportScreen() {
         <View className="gap-1">
           <Typography type="h4">Symptom frequency</Typography>
           <Typography className="text-muted text-sm">
-            How often each symptom appears across your period and daily logs.
+            Based on {stats.trackedDays} {stats.trackedDays === 1 ? 'day' : 'days'} tracked across
+            your period and daily logs.
           </Typography>
         </View>
         <SymptomFrequencyBars stats={stats.symptomStats} trackedDays={stats.trackedDays} />

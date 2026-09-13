@@ -40,16 +40,25 @@ export function SymptomFrequencyBars({ stats, trackedDays }: SymptomFrequencyBar
       accessibilityLabel={`${rows.length} symptoms logged across ${trackedDays} tracked ${trackedDays === 1 ? 'day' : 'days'}.`}
     >
       {rows.map(({ symptom, count, averageSeverity }) => {
-        const detail = `${count} ${count === 1 ? 'log' : 'logs'} of ${trackedDays} ${trackedDays === 1 ? 'day' : 'days'} tracked, average severity ${formatSeverity(averageSeverity)}`;
+        const severity = formatSeverity(averageSeverity);
+        const detail = count >= 3 ? `${count} logs · sev ${severity}` : `sev ${severity}`;
+        const accessibleDetail =
+          count >= 3
+            ? `${count} logs, average severity ${severity}`
+            : `average severity ${severity}; frequency not shown until 3 logs`;
+
         return (
           <View
             key={symptom}
             className="gap-2"
-            accessibilityLabel={`${SYMPTOM_LABELS[symptom]} — ${detail}`}
+            accessibilityLabel={`${SYMPTOM_LABELS[symptom]} — ${accessibleDetail}`}
           >
-            <Typography className="text-foreground font-medium">
-              {SYMPTOM_LABELS[symptom]} — {detail}
-            </Typography>
+            <View className="flex-row items-baseline justify-between gap-3">
+              <Typography className="text-foreground flex-1 font-medium">
+                {SYMPTOM_LABELS[symptom]}
+              </Typography>
+              <Typography className="text-muted text-right">— {detail}</Typography>
+            </View>
             {count >= 3 ? (
               <View className="bg-secondary h-3 overflow-hidden rounded-full">
                 <View
