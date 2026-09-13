@@ -73,7 +73,8 @@ export default function ReportScreen() {
           const severity = Number.isInteger(averageSeverity)
             ? String(averageSeverity)
             : averageSeverity.toFixed(1);
-          const detail = count >= 3 ? `${count} logs · sev ${severity}` : `sev ${severity}`;
+          const detail =
+            count >= 3 ? `${count} logs · severity ${severity}` : `· severity ${severity}`;
           return `<tr><td>${SYMPTOM_LABELS[key]}</td><td>${detail}</td></tr>`;
         })
         .join('');

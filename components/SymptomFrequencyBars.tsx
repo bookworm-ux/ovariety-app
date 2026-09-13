@@ -41,7 +41,8 @@ export function SymptomFrequencyBars({ stats, trackedDays }: SymptomFrequencyBar
     >
       {rows.map(({ symptom, count, averageSeverity }) => {
         const severity = formatSeverity(averageSeverity);
-        const detail = count >= 3 ? `${count} logs · sev ${severity}` : `sev ${severity}`;
+        const detail =
+          count >= 3 ? `${count} logs · severity ${severity}` : `· severity ${severity}`;
         const accessibleDetail =
           count >= 3
             ? `${count} logs, average severity ${severity}`
@@ -57,7 +58,9 @@ export function SymptomFrequencyBars({ stats, trackedDays }: SymptomFrequencyBar
               <Typography className="text-foreground flex-1 font-medium">
                 {SYMPTOM_LABELS[symptom]}
               </Typography>
-              <Typography className="text-muted text-right">— {detail}</Typography>
+              <Typography className="text-muted text-right">
+                {count >= 3 ? `— ${detail}` : detail}
+              </Typography>
             </View>
             {count >= 3 ? (
               <View className="bg-secondary h-3 overflow-hidden rounded-full">
