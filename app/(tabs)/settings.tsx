@@ -75,7 +75,10 @@ export default function SettingsScreen() {
             {profile.medications || 'None listed'}
           </Typography>
         </View>
-        <Button variant="outline" onPress={() => router.push('/onboarding')}>
+        <Button
+          variant="outline"
+          onPress={() => router.push({ pathname: '/onboarding', params: { mode: 'edit' } })}
+        >
           <Button.Label>Edit profile</Button.Label>
         </Button>
         <Button variant="outline" onPress={() => router.push('/labs')}>

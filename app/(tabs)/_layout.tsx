@@ -1,11 +1,16 @@
 import { ClipboardPlus, FileText, Home, Settings } from 'lucide-react-native';
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { ActivityIndicator, View } from 'react-native';
 import { useThemeColor } from 'heroui-native';
 import { useUniwind } from 'uniwind';
 
+import { useHealthStore } from '@/lib/health-store';
+
 export default function TabLayout() {
   const { theme } = useUniwind();
+  const hydrated = useHealthStore((state) => state.hydrated);
+  const onboardingComplete = useHealthStore((state) => state.profile?.onboardingComplete ?? false);
   const [background, foreground, border, accent, muted] = useThemeColor([
     'background',
     'foreground',
@@ -13,6 +18,16 @@ export default function TabLayout() {
     'accent',
     'muted',
   ]);
+
+  if (!hydrated) {
+    return (
+      <View className="bg-background flex-1 items-center justify-center">
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
+  if (!onboardingComplete) return <Redirect href="/onboarding" />;
 
   return (
     <>

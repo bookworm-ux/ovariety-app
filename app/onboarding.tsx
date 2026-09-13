@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Alert, Image, KeyboardAvoidingView, Platform, View } from 'react-native';
 import { Button, Card, Description, Input, Label, TextField, Typography } from 'heroui-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 import { MedicalDisclaimer, PrivacyNote } from '@/components/HealthNotices';
 import { Screen } from '@/components/Screen';
@@ -13,9 +13,12 @@ import { isISODate, todayISO } from '@/lib/date-utils';
 const CONDITIONS: Condition[] = ['none', 'pcos', 'hypothyroid', 'hyperthyroid', 'anemia'];
 
 export default function OnboardingScreen() {
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
   const existing = useHealthStore((state) => state.profile);
   const saveProfile = useHealthStore((state) => state.saveProfile);
-  const [step, setStep] = useState<'welcome' | 'profile'>('welcome');
+  const [step, setStep] = useState<'welcome' | 'profile'>(() =>
+    mode === 'edit' ? 'profile' : 'welcome',
+  );
   const [age, setAge] = useState(existing?.age?.toString() ?? '');
   const [height, setHeight] = useState(existing?.heightCm?.toString() ?? '');
   const [weight, setWeight] = useState(existing?.weightKg?.toString() ?? '');
