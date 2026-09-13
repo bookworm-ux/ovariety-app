@@ -108,11 +108,13 @@ function isHealthData(value: unknown): value is HealthData {
 
 type HealthStore = HealthData & {
   hydrated: boolean;
+  revision: number;
   hydrate: () => Promise<void>;
   saveProfile: (profile: Profile) => Promise<void>;
   addPeriod: (entry: PeriodEntry) => Promise<void>;
   addDailyLog: (entry: DailyLog) => Promise<void>;
   addLab: (entry: LabEntry) => Promise<void>;
+  replaceFromCloud: (data: HealthData) => Promise<void>;
   deleteAll: () => Promise<void>;
   exportData: () => HealthData;
 };
@@ -124,6 +126,7 @@ async function persist(data: HealthData) {
 export const useHealthStore = create<HealthStore>((set, get) => ({
   ...EMPTY_HEALTH_DATA,
   hydrated: false,
+  revision: 0,
   hydrate: async () => {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
     if (!raw) {
@@ -140,20 +143,22 @@ export const useHealthStore = create<HealthStore>((set, get) => ({
     }
   },
   saveProfile: async (profile) => {
+    const stampedProfile = { ...profile, updatedAt: new Date().toISOString() };
     const data: HealthData = {
       version: 1,
-      profile,
+      profile: stampedProfile,
       periods: get().periods,
       dailyLogs: get().dailyLogs,
       labs: get().labs,
     };
-    set(data);
+    set({ ...data, revision: get().revision + 1 });
     await persist(data);
   },
   addPeriod: async (entry) => {
+    const stampedEntry = { ...entry, updatedAt: new Date().toISOString() };
     const periods = [
-      ...get().periods.filter((item) => item.startDate !== entry.startDate),
-      entry,
+      ...get().periods.filter((item) => item.startDate !== stampedEntry.startDate),
+      stampedEntry,
     ].sort((a, b) => a.startDate.localeCompare(b.startDate));
     const data: HealthData = {
       version: 1,
@@ -162,13 +167,15 @@ export const useHealthStore = create<HealthStore>((set, get) => ({
       dailyLogs: get().dailyLogs,
       labs: get().labs,
     };
-    set(data);
+    set({ ...data, revision: get().revision + 1 });
     await persist(data);
   },
   addDailyLog: async (entry) => {
-    const dailyLogs = [...get().dailyLogs.filter((item) => item.date !== entry.date), entry].sort(
-      (a, b) => a.date.localeCompare(b.date),
-    );
+    const stampedEntry = { ...entry, updatedAt: new Date().toISOString() };
+    const dailyLogs = [
+      ...get().dailyLogs.filter((item) => item.date !== stampedEntry.date),
+      stampedEntry,
+    ].sort((a, b) => a.date.localeCompare(b.date));
     const data: HealthData = {
       version: 1,
       profile: get().profile,
@@ -176,11 +183,12 @@ export const useHealthStore = create<HealthStore>((set, get) => ({
       dailyLogs,
       labs: get().labs,
     };
-    set(data);
+    set({ ...data, revision: get().revision + 1 });
     await persist(data);
   },
   addLab: async (entry) => {
-    const labs = [...get().labs, entry].sort((a, b) => a.date.localeCompare(b.date));
+    const stampedEntry = { ...entry, updatedAt: new Date().toISOString() };
+    const labs = [...get().labs, stampedEntry].sort((a, b) => a.date.localeCompare(b.date));
     const data: HealthData = {
       version: 1,
       profile: get().profile,
@@ -188,7 +196,11 @@ export const useHealthStore = create<HealthStore>((set, get) => ({
       dailyLogs: get().dailyLogs,
       labs,
     };
-    set(data);
+    set({ ...data, revision: get().revision + 1 });
+    await persist(data);
+  },
+  replaceFromCloud: async (data) => {
+    set({ ...data });
     await persist(data);
   },
   deleteAll: async () => {
@@ -196,7 +208,7 @@ export const useHealthStore = create<HealthStore>((set, get) => ({
       deleteStoredLabPdfs();
     } finally {
       await AsyncStorage.removeItem(STORAGE_KEY);
-      set({ ...EMPTY_HEALTH_DATA });
+      set({ ...EMPTY_HEALTH_DATA, revision: get().revision + 1 });
     }
   },
   exportData: () => ({

@@ -23,6 +23,7 @@ import {
   Stack,
 } from 'expo-router';
 
+import { useCloudSyncStore } from '@/lib/cloud-sync';
 import { registerServiceWorker } from '@/lib/registerServiceWorker';
 import { reportErrorToParent } from '@/lib/reportPreviewError';
 import { InstallPrompt } from '@/components/InstallPrompt';
@@ -53,6 +54,11 @@ export default function RootLayout() {
   const background = useThemeColor('background');
   const hydrateHealthData = useHealthStore((state) => state.hydrate);
   const hydrated = useHealthStore((state) => state.hydrated);
+  const revision = useHealthStore((state) => state.revision);
+  const initializeCloud = useCloudSyncStore((state) => state.initialize);
+  const syncEnabled = useCloudSyncStore((state) => state.syncEnabled);
+  const session = useCloudSyncStore((state) => state.session);
+  const syncNow = useCloudSyncStore((state) => state.syncNow);
   const [loaded, error] = useFonts({
     Inter_400Regular,
     Inter_500Medium,
@@ -64,6 +70,20 @@ export default function RootLayout() {
   useEffect(() => {
     if (!hydrated) void hydrateHealthData();
   }, [hydrateHealthData, hydrated]);
+
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+    void initializeCloud().then((cleanup) => {
+      unsubscribe = cleanup;
+    });
+    return () => unsubscribe?.();
+  }, [initializeCloud]);
+
+  useEffect(() => {
+    if (!hydrated || !session || !syncEnabled) return undefined;
+    const timer = setTimeout(() => void syncNow().catch(() => undefined), revision === 0 ? 0 : 800);
+    return () => clearTimeout(timer);
+  }, [hydrated, revision, session, syncEnabled, syncNow]);
 
   // Report uncaught JS errors and unhandled promise rejections to parent (Bilt preview iframe)
   useEffect(() => {
@@ -154,6 +174,7 @@ export default function RootLayout() {
           <Stack.Screen name="onboarding" options={{ title: 'Set up', headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ title: 'Ovary', headerShown: false }} />
           <Stack.Screen name="labs" options={{ title: 'Lab values', presentation: 'modal' }} />
+          <Stack.Screen name="account" options={{ title: 'Account' }} />
           <Stack.Screen name="prediction" options={{ title: 'Your prediction' }} />
         </Stack>
         <InstallPrompt />

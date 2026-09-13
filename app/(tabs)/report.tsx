@@ -8,6 +8,8 @@ import * as Sharing from 'expo-sharing';
 import { EmptyProfile } from '@/components/EmptyProfile';
 import { MedicalDisclaimer } from '@/components/HealthNotices';
 import { Screen } from '@/components/Screen';
+import { bilt } from '@/lib/bilt';
+import { useCloudSyncStore } from '@/lib/cloud-sync';
 import {
   CONDITION_LABELS,
   LAB_CONFIG,
@@ -33,6 +35,9 @@ export default function ReportScreen() {
   const periods = useHealthStore((state) => state.periods);
   const dailyLogs = useHealthStore((state) => state.dailyLogs);
   const labs = useHealthStore((state) => state.labs);
+  const session = useCloudSyncStore((state) => state.session);
+  const syncEnabled = useCloudSyncStore((state) => state.syncEnabled);
+  const syncNow = useCloudSyncStore((state) => state.syncNow);
   const [exporting, setExporting] = useState(false);
   const stats = useMemo(
     () => buildReportStats({ version: 1, profile, periods, dailyLogs, labs }),
@@ -44,6 +49,17 @@ export default function ReportScreen() {
   const exportPdf = async () => {
     setExporting(true);
     try {
+      let cloudHtml: string | undefined;
+      if (session && syncEnabled) {
+        await syncNow();
+        const { data, error } = await bilt.functions.invoke<{ html: string }>(
+          'generate-health-report',
+          { body: {} },
+        );
+        if (error) throw new Error(error.message);
+        if (!data?.html) throw new Error('The cloud report did not return a document.');
+        cloudHtml = data.html;
+      }
       const cycleRows = stats.lengths
         .map((value, index) => `<tr><td>Cycle ${index + 1}</td><td>${value} days</td></tr>`)
         .join('');
@@ -69,7 +85,8 @@ export default function ReportScreen() {
             )
             .join('')
         : '<li>No automated pattern flags from the available logs.</li>';
-      const html = `<html><head><style>body{font-family:Arial;color:#4b3a42;background:#f7eff1;padding:30px}h1,h2{color:#a1526e}table{width:100%;border-collapse:collapse;margin:10px 0 22px}td,th{border-bottom:1px solid #d0839f;padding:8px;text-align:left}.note{background:#f6dde5;padding:14px;border-radius:8px}</style></head><body><h1>Cycle health summary</h1><p>Prepared from self-reported records.</p><h2>Profile</h2><table><tr><td>Age</td><td>${profile.age}</td></tr><tr><td>Condition</td><td>${escapeHtml(CONDITION_LABELS[profile.condition])}</td></tr><tr><td>Medications</td><td>${escapeHtml(profile.medications || 'None listed')}</td></tr></table><h2>Cycle statistics</h2><p>${stats.lengths.length} completed cycles · Average ${n(stats.average)} days · Variability ${n(stats.variability)} days · Range ${n(stats.min)}–${n(stats.max)} days</p><table>${cycleRows || '<tr><td>No completed cycle lengths yet.</td></tr>'}</table><h2>Symptom frequency</h2><table>${symptomRows || '<tr><td>No symptoms logged.</td></tr>'}</table><h2>Lab results and displayed ranges</h2><table><tr><th>Date</th><th>Marker</th><th>Value</th><th>Displayed range</th></tr>${labRows || '<tr><td colspan="4">No lab values logged.</td></tr>'}</table><h2>Automated pattern flags</h2><p>These are prompts to discuss, not clinical findings.</p><ul>${flagRows}</ul><p class="note">${closing}</p></body></html>`;
+      const localHtml = `<html><head><style>body{font-family:Arial;color:#4b3a42;background:#f7eff1;padding:30px}h1,h2{color:#a1526e}table{width:100%;border-collapse:collapse;margin:10px 0 22px}td,th{border-bottom:1px solid #d0839f;padding:8px;text-align:left}.note{background:#f6dde5;padding:14px;border-radius:8px}</style></head><body><h1>Cycle health summary</h1><p>Prepared from self-reported records.</p><h2>Profile</h2><table><tr><td>Age</td><td>${profile.age}</td></tr><tr><td>Condition</td><td>${escapeHtml(CONDITION_LABELS[profile.condition])}</td></tr><tr><td>Medications</td><td>${escapeHtml(profile.medications || 'None listed')}</td></tr></table><h2>Cycle statistics</h2><p>${stats.lengths.length} completed cycles · Average ${n(stats.average)} days · Variability ${n(stats.variability)} days · Range ${n(stats.min)}–${n(stats.max)} days</p><table>${cycleRows || '<tr><td>No completed cycle lengths yet.</td></tr>'}</table><h2>Symptom frequency</h2><table>${symptomRows || '<tr><td>No symptoms logged.</td></tr>'}</table><h2>Lab results and displayed ranges</h2><table><tr><th>Date</th><th>Marker</th><th>Value</th><th>Displayed range</th></tr>${labRows || '<tr><td colspan="4">No lab values logged.</td></tr>'}</table><h2>Automated pattern flags</h2><p>These are prompts to discuss, not clinical findings.</p><ul>${flagRows}</ul><p class="note">${closing}</p></body></html>`;
+      const html = cloudHtml ?? localHtml;
       if (Platform.OS === 'web') {
         await Print.printAsync({ html });
       } else {
@@ -79,8 +96,11 @@ export default function ReportScreen() {
           dialogTitle: 'Share doctor report',
         });
       }
-    } catch {
-      Alert.alert('Could not export', 'The report could not be created on this device.');
+    } catch (error) {
+      Alert.alert(
+        'Could not export',
+        error instanceof Error ? error.message : 'The report could not be created.',
+      );
     } finally {
       setExporting(false);
     }
@@ -90,7 +110,11 @@ export default function ReportScreen() {
     <Screen
       eyebrow="Doctor report"
       title="A clearer appointment summary"
-      subtitle="Review this before sharing. It includes only information stored in this app."
+      subtitle={
+        syncEnabled
+          ? 'Review this before sharing. The PDF is created on this device from your synchronized record data.'
+          : 'Review this before sharing. It includes only information stored in this app.'
+      }
     >
       <Card className="gap-3 p-5">
         <Typography type="h4">Profile summary</Typography>
@@ -101,8 +125,9 @@ export default function ReportScreen() {
       <Card className="gap-3 p-5">
         <Typography type="h4">Lab results</Typography>
         <Typography className="text-muted text-sm leading-5">
-          Add condition-specific lab values, attach the original PDF, or do both. Saved results are
-          included in this report.
+          Add condition-specific lab values, attach the original PDF, or do both. PDFs remain on
+          this device; only entered numeric values and attachment metadata can sync. Saved values
+          are included in this report.
         </Typography>
         <Button variant="outline" onPress={() => router.push('/labs')}>
           <Button.Label>Add lab values</Button.Label>

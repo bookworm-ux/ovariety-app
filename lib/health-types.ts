@@ -49,6 +49,7 @@ export interface Profile {
   medications?: string;
   lastPeriodStartDate: string;
   onboardingComplete: boolean;
+  updatedAt?: string;
 }
 
 export interface PeriodEntry {
@@ -59,6 +60,7 @@ export interface PeriodEntry {
   flowIntensity: Severity;
   symptoms: Partial<Record<Symptom, Severity>>;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface DailyLog {
@@ -66,6 +68,7 @@ export interface DailyLog {
   date: string;
   symptoms: Partial<Record<Symptom, Severity>>;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface LabAttachment {
@@ -87,6 +90,7 @@ export interface LabEntry {
   ferritin?: number;
   attachment?: LabAttachment;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface HealthData {

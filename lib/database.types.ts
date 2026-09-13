@@ -14,6 +14,8 @@ declare module '@biltme/backend' {
             log_date: string;
             symptoms: Json;
             created_at: string;
+            updated_at: string;
+            local_id: string;
           };
           Insert: {
             id: string;
@@ -21,6 +23,8 @@ declare module '@biltme/backend' {
             log_date: string;
             symptoms?: Json;
             created_at?: string;
+            updated_at?: string;
+            local_id: string;
           };
           Update: {
             id?: string;
@@ -28,6 +32,8 @@ declare module '@biltme/backend' {
             log_date?: string;
             symptoms?: Json;
             created_at?: string;
+            updated_at?: string;
+            local_id?: string;
           };
           Relationships: [];
         };
@@ -87,6 +93,8 @@ declare module '@biltme/backend' {
             attachment_size_bytes: number | null;
             attachment_uri: string | null;
             created_at: string;
+            updated_at: string;
+            local_id: string;
           };
           Insert: {
             id: string;
@@ -104,6 +112,8 @@ declare module '@biltme/backend' {
             attachment_size_bytes?: number | null;
             attachment_uri?: string | null;
             created_at?: string;
+            updated_at?: string;
+            local_id: string;
           };
           Update: {
             id?: string;
@@ -121,6 +131,8 @@ declare module '@biltme/backend' {
             attachment_size_bytes?: number | null;
             attachment_uri?: string | null;
             created_at?: string;
+            updated_at?: string;
+            local_id?: string;
           };
           Relationships: [];
         };
@@ -134,6 +146,8 @@ declare module '@biltme/backend' {
             flow_intensity: number;
             symptoms: Json;
             created_at: string;
+            updated_at: string;
+            local_id: string;
           };
           Insert: {
             id: string;
@@ -144,6 +158,8 @@ declare module '@biltme/backend' {
             flow_intensity: number;
             symptoms?: Json;
             created_at?: string;
+            updated_at?: string;
+            local_id: string;
           };
           Update: {
             id?: string;
@@ -154,6 +170,8 @@ declare module '@biltme/backend' {
             flow_intensity?: number;
             symptoms?: Json;
             created_at?: string;
+            updated_at?: string;
+            local_id?: string;
           };
           Relationships: [];
         };
