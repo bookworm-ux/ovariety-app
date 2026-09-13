@@ -6,12 +6,14 @@ import {
   LAB_KEYS,
   type DailyLog,
   type HealthData,
+  type LabAttachment,
   type LabEntry,
   type PeriodEntry,
   type Profile,
   type Severity,
   type Symptom,
 } from '@/lib/health-types';
+import { deleteStoredLabPdfs } from '@/lib/lab-attachments';
 
 const STORAGE_KEY = 'cyclewise:health-data:v1';
 
@@ -69,12 +71,23 @@ function isDailyLog(value: unknown): value is DailyLog {
   );
 }
 
+function isLabAttachment(value: unknown): value is LabAttachment {
+  return (
+    isRecord(value) &&
+    typeof value.name === 'string' &&
+    value.mimeType === 'application/pdf' &&
+    typeof value.uri === 'string' &&
+    (value.size === undefined || typeof value.size === 'number')
+  );
+}
+
 function isLabEntry(value: unknown): value is LabEntry {
   return (
     isRecord(value) &&
     typeof value.id === 'string' &&
     typeof value.date === 'string' &&
     typeof value.createdAt === 'string' &&
+    (value.attachment === undefined || isLabAttachment(value.attachment)) &&
     LAB_KEYS.every((key) => value[key] === undefined || typeof value[key] === 'number')
   );
 }
@@ -179,8 +192,12 @@ export const useHealthStore = create<HealthStore>((set, get) => ({
     await persist(data);
   },
   deleteAll: async () => {
-    await AsyncStorage.removeItem(STORAGE_KEY);
-    set({ ...EMPTY_HEALTH_DATA });
+    try {
+      deleteStoredLabPdfs();
+    } finally {
+      await AsyncStorage.removeItem(STORAGE_KEY);
+      set({ ...EMPTY_HEALTH_DATA });
+    }
   },
   exportData: () => ({
     version: 1,

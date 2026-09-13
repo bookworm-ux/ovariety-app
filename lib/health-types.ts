@@ -68,6 +68,13 @@ export interface DailyLog {
   createdAt: string;
 }
 
+export interface LabAttachment {
+  name: string;
+  mimeType: 'application/pdf';
+  size?: number;
+  uri: string;
+}
+
 export interface LabEntry {
   id: string;
   date: string;
@@ -78,6 +85,7 @@ export interface LabEntry {
   amh?: number;
   hemoglobin?: number;
   ferritin?: number;
+  attachment?: LabAttachment;
   createdAt: string;
 }
 
