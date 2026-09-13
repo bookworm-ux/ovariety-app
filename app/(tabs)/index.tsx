@@ -56,7 +56,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <Screen eyebrow="Today" title={`Cycle day ${cycleDay}`} subtitle={displayDate(todayISO())}>
+    <Screen title={`Cycle day ${cycleDay}`} subtitle={displayDate(todayISO())}>
       <Card className="overflow-hidden p-0">
         <View className="bg-surface-secondary gap-4 p-5">
           <View className="flex-row items-center justify-between">
