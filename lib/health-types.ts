@@ -26,6 +26,16 @@ export const SYMPTOMS = [
 export type Symptom = (typeof SYMPTOMS)[number];
 export type Severity = 1 | 2 | 3 | 4 | 5;
 
+export const DAILY_SIGNALS = ['sleep', 'energy', 'cognitiveClarity'] as const;
+export type DailySignal = (typeof DAILY_SIGNALS)[number];
+export type DailySignals = Partial<Record<DailySignal, Severity>>;
+
+export const DAILY_SIGNAL_LABELS: Record<DailySignal, string> = {
+  sleep: 'Sleep quality',
+  energy: 'Energy',
+  cognitiveClarity: 'Cognitive clarity',
+};
+
 export const SYMPTOM_LABELS: Record<Symptom, string> = {
   cramps: 'Cramps',
   fatigue: 'Fatigue',
@@ -67,6 +77,7 @@ export interface DailyLog {
   id: string;
   date: string;
   symptoms: Partial<Record<Symptom, Severity>>;
+  signals?: DailySignals;
   createdAt: string;
   updatedAt?: string;
 }

@@ -16,6 +16,7 @@ declare module '@biltme/backend' {
             created_at: string;
             updated_at: string;
             local_id: string;
+            signals: Json;
           };
           Insert: {
             id: string;
@@ -25,6 +26,7 @@ declare module '@biltme/backend' {
             created_at?: string;
             updated_at?: string;
             local_id: string;
+            signals?: Json;
           };
           Update: {
             id?: string;
@@ -34,6 +36,7 @@ declare module '@biltme/backend' {
             created_at?: string;
             updated_at?: string;
             local_id?: string;
+            signals?: Json;
           };
           Relationships: [];
         };

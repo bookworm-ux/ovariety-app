@@ -1,7 +1,13 @@
 import { type PropsWithChildren, useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { Button, Card, Typography } from 'heroui-native';
-import { addDays, eachDayOfInterval, format, startOfWeek } from 'date-fns';
+import {
+  differenceInCalendarDays,
+  eachDayOfInterval,
+  endOfWeek,
+  format,
+  startOfWeek,
+} from 'date-fns';
 
 import { EmptyProfile } from '@/components/EmptyProfile';
 import { MedicalDisclaimer } from '@/components/HealthNotices';
@@ -25,7 +31,8 @@ export default function PredictionScreen() {
   );
   if (!profile || !prediction) return <EmptyProfile />;
   const gridStart = startOfWeek(prediction.rangeStart);
-  const days = eachDayOfInterval({ start: gridStart, end: addDays(gridStart, 34) });
+  const gridEnd = endOfWeek(prediction.rangeEnd);
+  const days = eachDayOfInterval({ start: gridStart, end: gridEnd });
 
   return (
     <Screen
@@ -36,7 +43,8 @@ export default function PredictionScreen() {
       <Card className="gap-2 p-5">
         <Typography type="h4">Estimate timeline</Typography>
         <PredictionRangeTimeline
-          ovulationDate={prediction.ovulationDate}
+          mostLikelyEnd={prediction.mostLikelyEnd}
+          mostLikelyStart={prediction.mostLikelyStart}
           predictedDate={prediction.predictedDate}
           rangeStart={prediction.rangeStart}
           rangeEnd={prediction.rangeEnd}
@@ -53,19 +61,44 @@ export default function PredictionScreen() {
         <View className="flex-row flex-wrap">
           {days.map((day) => {
             const inside = day >= prediction.rangeStart && day <= prediction.rangeEnd;
-            const midpoint =
-              format(day, 'yyyy-MM-dd') === format(prediction.predictedDate, 'yyyy-MM-dd');
+            const insideMostLikely =
+              day >= prediction.mostLikelyStart && day <= prediction.mostLikelyEnd;
+            const distanceFromCenter = Math.abs(
+              differenceInCalendarDays(day, prediction.predictedDate),
+            );
+            const distanceRatio = distanceFromCenter / prediction.confidenceWindowDays;
+            const midpoint = distanceFromCenter === 0;
+            const probabilityClass = midpoint
+              ? 'bg-accent'
+              : insideMostLikely
+                ? 'bg-accent/45'
+                : distanceRatio <= 0.65
+                  ? 'bg-accent/25'
+                  : distanceRatio <= 0.85
+                    ? 'bg-accent/15'
+                    : inside
+                      ? 'bg-accent/10'
+                      : '';
+            const rangeLabel = midpoint
+              ? 'center of the most likely window'
+              : insideMostLikely
+                ? 'inside the most likely week'
+                : inside
+                  ? 'inside the full prediction range'
+                  : 'outside the prediction range';
             return (
               <View
                 key={day.toISOString()}
-                className={`m-[0.6%] aspect-square w-[13%] items-center justify-center rounded-full ${midpoint ? 'bg-accent' : inside ? 'bg-accent/15' : ''}`}
+                accessible
+                accessibilityLabel={`${format(day, 'MMMM d')}, ${rangeLabel}`}
+                className={`m-[0.6%] aspect-square w-[13%] items-center justify-center rounded-full ${probabilityClass}`}
               >
                 <Typography
                   className={
                     midpoint
                       ? 'text-accent-foreground font-semibold'
                       : inside
-                        ? 'text-accent font-semibold'
+                        ? 'text-foreground font-semibold'
                         : 'text-muted'
                   }
                 >
@@ -75,8 +108,18 @@ export default function PredictionScreen() {
             );
           })}
         </View>
+        <View className="flex-row flex-wrap justify-center gap-x-4 gap-y-2">
+          <View className="flex-row items-center gap-2">
+            <View className="bg-accent h-2.5 w-8 rounded-full" />
+            <Typography className="text-muted text-xs">Most likely week (50%)</Typography>
+          </View>
+          <View className="flex-row items-center gap-2">
+            <View className="bg-accent/15 h-2.5 w-8 rounded-full" />
+            <Typography className="text-muted text-xs">Full range (95%)</Typography>
+          </View>
+        </View>
         <Typography className="text-muted text-center text-xs">
-          Filled date: center estimate · shaded dates: prediction range
+          Shading is darkest at the center estimate and fades toward the range edges.
         </Typography>
       </Card>
       <Card className="gap-3 p-5">
@@ -216,12 +259,20 @@ export default function PredictionScreen() {
                 value={`${prediction.predictionSpread.toFixed(1)} days`}
               />
               <Detail
-                label="Range multiplier"
+                label="Full range multiplier"
                 value={`${prediction.calculationDetails.confidenceMultiplier} × spread`}
               />
               <Detail
-                label="Range width each side"
+                label="Full range width each side"
                 value={`${prediction.confidenceWindowDays} days`}
+              />
+              <Detail
+                label="Most likely multiplier"
+                value={`${prediction.calculationDetails.mostLikelyMultiplier} × spread`}
+              />
+              <Detail
+                label="Most likely width each side"
+                value={`${prediction.mostLikelyWindowDays} days`}
               />
               <Detail
                 label="Rounded cycle estimate"
@@ -233,8 +284,9 @@ export default function PredictionScreen() {
               />
               <Typography className="text-muted text-xs leading-5">
                 The midpoint adds the rounded blended estimate to the latest logged period start.
-                The displayed range adds and subtracts the rounded multiplier result. Ovulation is a
-                separate estimate, not a confirmed event.
+                The full range uses the 95% multiplier; the solid most-likely band uses the 50%
+                multiplier. Ovulation is withheld from the interface when the full-range half-width
+                exceeds 14 days.
               </Typography>
             </CalculationSection>
 

@@ -7,7 +7,16 @@ import { EmptyProfile } from '@/components/EmptyProfile';
 import { RatingPicker } from '@/components/RatingPicker';
 import { Screen } from '@/components/Screen';
 import { isISODate, todayISO } from '@/lib/date-utils';
-import { type Severity, type Symptom, SYMPTOM_LABELS, SYMPTOMS } from '@/lib/health-types';
+import {
+  DAILY_SIGNAL_LABELS,
+  DAILY_SIGNALS,
+  type DailySignal,
+  type DailySignals,
+  type Severity,
+  type Symptom,
+  SYMPTOM_LABELS,
+  SYMPTOMS,
+} from '@/lib/health-types';
 import { useHealthStore } from '@/lib/health-store';
 
 export default function LogScreen() {
@@ -20,6 +29,7 @@ export default function LogScreen() {
   const [length, setLength] = useState('');
   const [flow, setFlow] = useState<Severity>(3);
   const [symptoms, setSymptoms] = useState<Partial<Record<Symptom, Severity>>>({});
+  const [signals, setSignals] = useState<DailySignals>({});
   const [saving, setSaving] = useState(false);
 
   if (!profile) return <EmptyProfile />;
@@ -29,6 +39,14 @@ export default function LogScreen() {
       const next = { ...current };
       if (next[symptom]) delete next[symptom];
       else next[symptom] = 3;
+      return next;
+    });
+
+  const toggleSignal = (signal: DailySignal) =>
+    setSignals((current) => {
+      const next = { ...current };
+      if (next[signal]) delete next[signal];
+      else next[signal] = 3;
       return next;
     });
 
@@ -60,6 +78,7 @@ export default function LogScreen() {
         id: `daily-${Date.now()}`,
         date,
         symptoms,
+        signals: Object.keys(signals).length > 0 ? signals : undefined,
         createdAt: new Date().toISOString(),
       });
     }
@@ -68,7 +87,7 @@ export default function LogScreen() {
       'Saved',
       mode === 'period'
         ? 'Period details were added to your cycle history.'
-        : 'Today’s symptoms were saved.',
+        : 'Today’s check-in and symptoms were saved.',
     );
     router.replace('/(tabs)');
   };
@@ -128,6 +147,45 @@ export default function LogScreen() {
             </>
           ) : null}
         </Card>
+        {mode === 'daily' ? (
+          <Card className="gap-4 p-5">
+            <View>
+              <Typography type="h4">Today’s signals</Typography>
+              <Typography className="text-muted text-sm">
+                Optional ratings help Today guidance reflect how you actually feel.
+              </Typography>
+            </View>
+            <View className="flex-row flex-wrap gap-2">
+              {DAILY_SIGNALS.map((signal) => {
+                const isSelected = signals[signal] !== undefined;
+                return (
+                  <Chip
+                    key={signal}
+                    size="md"
+                    color={isSelected ? 'accent' : 'default'}
+                    variant={isSelected ? 'primary' : 'tertiary'}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: isSelected }}
+                    onPress={() => toggleSignal(signal)}
+                  >
+                    <Chip.Label>{DAILY_SIGNAL_LABELS[signal]}</Chip.Label>
+                  </Chip>
+                );
+              })}
+            </View>
+            {DAILY_SIGNALS.filter((signal) => signals[signal] !== undefined).map((signal) => (
+              <View key={signal} className="border-separator gap-2 border-t pt-4">
+                <Typography className="font-semibold">{DAILY_SIGNAL_LABELS[signal]}</Typography>
+                <RatingPicker
+                  value={signals[signal]}
+                  onChange={(value) => setSignals((current) => ({ ...current, [signal]: value }))}
+                  lowLabel="Low"
+                  highLabel="High"
+                />
+              </View>
+            ))}
+          </Card>
+        ) : null}
         <Card className="gap-4 p-5">
           <View>
             <Typography type="h4">Symptoms</Typography>

@@ -5,6 +5,7 @@ import {
   EMPTY_HEALTH_DATA,
   LAB_KEYS,
   type DailyLog,
+  type DailySignals,
   type HealthData,
   type LabAttachment,
   type LabEntry,
@@ -26,6 +27,10 @@ function isSeverity(value: unknown): value is 1 | 2 | 3 | 4 | 5 {
 }
 
 function isSymptoms(value: unknown): value is Partial<Record<Symptom, Severity>> {
+  return isRecord(value) && Object.values(value).every(isSeverity);
+}
+
+function isDailySignals(value: unknown): value is DailySignals {
   return isRecord(value) && Object.values(value).every(isSeverity);
 }
 
@@ -67,6 +72,7 @@ function isDailyLog(value: unknown): value is DailyLog {
     typeof value.id === 'string' &&
     typeof value.date === 'string' &&
     isSymptoms(value.symptoms) &&
+    (value.signals === undefined || isDailySignals(value.signals)) &&
     typeof value.createdAt === 'string'
   );
 }

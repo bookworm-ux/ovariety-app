@@ -91,6 +91,7 @@ function remoteDailyToLocal(row: Record<string, unknown>): DailyLog {
     id: String(row.local_id ?? row.id),
     date: String(row.log_date),
     symptoms: row.symptoms ?? {},
+    signals: row.signals ?? {},
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
@@ -186,6 +187,7 @@ async function synchronize(userId: string) {
         user_id: userId,
         log_date: row.date,
         symptoms: row.symptoms,
+        signals: row.signals ?? {},
         created_at: row.createdAt,
         updated_at: row.updatedAt ?? row.createdAt,
       })),

@@ -11,12 +11,13 @@ import { PredictionRangeTimeline } from '@/components/PredictionRangeTimeline';
 import { Screen } from '@/components/Screen';
 import { displayDate, displayShortDate, todayISO } from '@/lib/date-utils';
 import { useHealthStore } from '@/lib/health-store';
-import { calculatePrediction } from '@/lib/prediction';
+import { calculateDailyGuidance, calculatePrediction } from '@/lib/prediction';
 
 export default function HomeScreen() {
   const [accentForeground, foreground] = useThemeColor(['accent-foreground', 'foreground']);
   const profile = useHealthStore((state) => state.profile);
   const periods = useHealthStore((state) => state.periods);
+  const dailyLogs = useHealthStore((state) => state.dailyLogs);
   const labs = useHealthStore((state) => state.labs);
   const addPeriod = useHealthStore((state) => state.addPeriod);
   const [saving, setSaving] = useState(false);
@@ -35,6 +36,15 @@ export default function HomeScreen() {
     differenceInCalendarDays(parseISO(todayISO()), parseISO(latestStart)) + 1,
   );
   const alreadyLogged = periods.some((item) => item.startDate === todayISO());
+  const latestPeriod = periods.find((item) => item.startDate === latestStart);
+  const todayLog = dailyLogs.find((item) => item.date === todayISO());
+  const dailyGuidance = calculateDailyGuidance(
+    prediction,
+    latestStart,
+    latestPeriod,
+    todayLog,
+    todayISO(),
+  );
 
   const startToday = async () => {
     if (alreadyLogged) {
@@ -71,7 +81,8 @@ export default function HomeScreen() {
             A range reflects normal cycle-to-cycle variation.
           </Typography>
           <PredictionRangeTimeline
-            ovulationDate={prediction.ovulationDate}
+            mostLikelyEnd={prediction.mostLikelyEnd}
+            mostLikelyStart={prediction.mostLikelyStart}
             predictedDate={prediction.predictedDate}
             rangeStart={prediction.rangeStart}
             rangeEnd={prediction.rangeEnd}
@@ -85,6 +96,53 @@ export default function HomeScreen() {
           <Button.Label>See how this was calculated</Button.Label>
           <ChevronRight size={18} color={foreground} />
         </Button>
+      </Card>
+
+      <Card className="gap-4 p-5">
+        <View className="gap-1">
+          <Typography type="h3">Today’s guidance</Typography>
+          <Typography className="text-muted text-sm">
+            An estimate for today, adjusted when you log sleep, energy, and clarity.
+          </Typography>
+        </View>
+        {dailyGuidance.status === 'low-confidence' ? (
+          <View className="bg-surface-secondary rounded-xl p-4">
+            <Typography className="font-semibold">Phase not estimated</Typography>
+            <Typography className="text-muted mt-1 text-sm">{dailyGuidance.reason}</Typography>
+          </View>
+        ) : (
+          <>
+            <View className="gap-1">
+              <Typography className="text-accent font-semibold">
+                {dailyGuidance.phaseLabel}
+              </Typography>
+              <Typography className="text-muted text-xs">{dailyGuidance.phaseReason}</Typography>
+            </View>
+            {dailyGuidance.override ? (
+              <View className="border-accent/30 bg-surface-secondary gap-1 rounded-xl border p-4">
+                <Typography className="font-semibold">Today’s signals take priority</Typography>
+                <Typography className="text-sm">
+                  Phase: {dailyGuidance.override.phaseSuggested}
+                </Typography>
+                <Typography className="text-sm">
+                  Signals: {dailyGuidance.override.signalsSaid}
+                </Typography>
+                <Typography className="text-sm font-semibold">
+                  Instead: {dailyGuidance.override.doInstead}
+                </Typography>
+              </View>
+            ) : null}
+            <View>
+              {dailyGuidance.items.map((item) => (
+                <View key={item.label} className="border-separator gap-1 border-t py-3">
+                  <Typography className="font-semibold">{item.label}</Typography>
+                  <Typography>{item.guidance}</Typography>
+                  <Typography className="text-muted text-xs">Why: {item.reasoning}</Typography>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
       </Card>
 
       <Button size="lg" isDisabled={saving || alreadyLogged} onPress={startToday}>
@@ -106,7 +164,9 @@ export default function HomeScreen() {
         <Card className="flex-1 gap-2 p-4">
           <Typography className="text-muted text-xs">Estimated ovulation</Typography>
           <Typography className="font-semibold">
-            {displayShortDate(prediction.ovulationDate)}
+            {prediction.ovulationReliable
+              ? displayShortDate(prediction.ovulationDate)
+              : "Can't estimate reliably yet"}
           </Typography>
         </Card>
       </View>
