@@ -1,10 +1,9 @@
 import { type PropsWithChildren, useMemo, useState } from 'react';
 import { View } from 'react-native';
-import { Button, Card, Typography } from 'heroui-native';
+import { Button, Card, PressableFeedback, Typography } from 'heroui-native';
 import {
   addDays,
   addMonths,
-  differenceInCalendarDays,
   eachDayOfInterval,
   endOfMonth,
   format,
@@ -19,16 +18,47 @@ import { Screen } from '@/components/Screen';
 import { displayDate } from '@/lib/date-utils';
 import { CONDITION_LABELS } from '@/lib/health-types';
 import { useHealthStore } from '@/lib/health-store';
-import { calculatePrediction } from '@/lib/prediction';
+import { calculateDailyGuidance, calculatePrediction, type CyclePhase } from '@/lib/prediction';
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const PHASES = [
+  'menstrual',
+  'follicular',
+  'ovulatory',
+  'luteal',
+] as const satisfies readonly CyclePhase[];
+
+const PHASE_STYLES: Record<CyclePhase, { label: string; background: string; marker: string }> = {
+  menstrual: {
+    label: 'Menstrual',
+    background: 'bg-phase-menstrual',
+    marker: 'bg-phase-menstrual-marker',
+  },
+  follicular: {
+    label: 'Follicular',
+    background: 'bg-phase-follicular',
+    marker: 'bg-phase-follicular-marker',
+  },
+  ovulatory: {
+    label: 'Ovulatory',
+    background: 'bg-phase-ovulatory',
+    marker: 'bg-phase-ovulatory-marker',
+  },
+  luteal: {
+    label: 'Luteal',
+    background: 'bg-phase-luteal',
+    marker: 'bg-phase-luteal-marker',
+  },
+};
 
 export default function PredictionScreen() {
   const profile = useHealthStore((state) => state.profile);
   const periods = useHealthStore((state) => state.periods);
+  const dailyLogs = useHealthStore((state) => state.dailyLogs);
   const labs = useHealthStore((state) => state.labs);
   const [expanded, setExpanded] = useState(false);
   const [displayedMonth, setDisplayedMonth] = useState(() => startOfMonth(new Date()));
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
   const prediction = useMemo(
     () => (profile ? calculatePrediction(profile, periods, labs) : null),
     [profile, periods, labs],
@@ -45,6 +75,26 @@ export default function PredictionScreen() {
     })),
     ...monthDays.map((day) => ({ day, key: format(day, 'yyyy-MM-dd') })),
   ];
+  const cycleStarts = [
+    profile.lastPeriodStartDate,
+    ...periods.map((item) => item.startDate),
+  ].sort();
+  const guidanceForDate = (day: Date) => {
+    const dateKey = format(day, 'yyyy-MM-dd');
+    const cycleStart = cycleStarts.filter((start) => start <= dateKey).at(-1) ?? cycleStarts[0];
+    const period = periods.find((item) => item.startDate === cycleStart);
+    const dailyLog = dailyLogs.find((item) => item.date === dateKey);
+    return calculateDailyGuidance(prediction, cycleStart, period, dailyLog, dateKey);
+  };
+  const selectedGuidance = guidanceForDate(selectedDate);
+  const selectedPhaseStyle =
+    selectedGuidance.status === 'available' ? PHASE_STYLES[selectedGuidance.phase] : null;
+
+  const changeMonth = (amount: number) => {
+    const nextMonth = startOfMonth(addMonths(displayedMonth, amount));
+    setDisplayedMonth(nextMonth);
+    setSelectedDate(nextMonth);
+  };
 
   return (
     <Screen
@@ -68,7 +118,7 @@ export default function PredictionScreen() {
             accessibilityLabel="Show previous month"
             className="min-w-24"
             variant="outline"
-            onPress={() => setDisplayedMonth((month) => addMonths(month, -1))}
+            onPress={() => changeMonth(-1)}
           >
             <Button.Label>Previous</Button.Label>
           </Button>
@@ -79,7 +129,7 @@ export default function PredictionScreen() {
             accessibilityLabel="Show next month"
             className="min-w-24"
             variant="outline"
-            onPress={() => setDisplayedMonth((month) => addMonths(month, 1))}
+            onPress={() => changeMonth(1)}
           >
             <Button.Label>Next</Button.Label>
           </Button>
@@ -96,67 +146,94 @@ export default function PredictionScreen() {
             if (!day) {
               return <View key={key} className="m-[0.6%] aspect-square w-[13%]" />;
             }
-            const inside = day >= prediction.rangeStart && day <= prediction.rangeEnd;
-            const insideMostLikely =
-              day >= prediction.mostLikelyStart && day <= prediction.mostLikelyEnd;
-            const distanceFromCenter = Math.abs(
-              differenceInCalendarDays(day, prediction.predictedDate),
-            );
-            const distanceRatio = distanceFromCenter / prediction.confidenceWindowDays;
-            const midpoint = distanceFromCenter === 0;
-            const probabilityClass = midpoint
-              ? 'bg-accent'
-              : insideMostLikely
-                ? 'bg-accent/45'
-                : distanceRatio <= 0.65
-                  ? 'bg-accent/25'
-                  : distanceRatio <= 0.85
-                    ? 'bg-accent/15'
-                    : inside
-                      ? 'bg-accent/10'
-                      : '';
-            const rangeLabel = midpoint
-              ? 'center of the most likely window'
-              : insideMostLikely
-                ? 'inside the most likely week'
-                : inside
-                  ? 'inside the full prediction range'
-                  : 'outside the prediction range';
+
+            const dayGuidance = guidanceForDate(day);
+            const phaseStyle =
+              dayGuidance.status === 'available' ? PHASE_STYLES[dayGuidance.phase] : null;
+            const selected = key === format(selectedDate, 'yyyy-MM-dd');
+            const insidePredictionRange =
+              day >= prediction.rangeStart && day <= prediction.rangeEnd;
+            const accessibilityPhase = phaseStyle
+              ? `${phaseStyle.label} phase estimate`
+              : 'phase unavailable';
+
             return (
-              <View
+              <PressableFeedback
                 key={key}
-                accessible
-                accessibilityLabel={`${format(day, 'MMMM d')}, ${rangeLabel}`}
-                className={`m-[0.6%] aspect-square w-[13%] items-center justify-center rounded-full ${probabilityClass}`}
+                accessibilityLabel={`${format(day, 'MMMM d')}, ${accessibilityPhase}. Select for guidance.`}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                className={`m-[0.6%] aspect-square w-[13%] items-center justify-center rounded-full border-2 ${phaseStyle?.background ?? 'bg-surface-secondary'} ${selected ? 'border-foreground' : 'border-transparent'}`}
+                onPress={() => setSelectedDate(day)}
               >
-                <Typography
-                  className={
-                    midpoint
-                      ? 'text-accent-foreground font-semibold'
-                      : inside
-                        ? 'text-foreground font-semibold'
-                        : 'text-muted'
-                  }
-                >
-                  {format(day, 'd')}
-                </Typography>
-              </View>
+                <Typography className="font-semibold">{format(day, 'd')}</Typography>
+                <View className="absolute bottom-1.5 flex-row gap-1">
+                  {phaseStyle ? (
+                    <View className={`h-1.5 w-1.5 rounded-full ${phaseStyle.marker}`} />
+                  ) : null}
+                  {insidePredictionRange ? (
+                    <View className="bg-accent h-1.5 w-1.5 rounded-full" />
+                  ) : null}
+                </View>
+              </PressableFeedback>
             );
           })}
         </View>
         <View className="flex-row flex-wrap justify-center gap-x-4 gap-y-2">
+          {PHASES.map((phase) => (
+            <View key={phase} className="flex-row items-center gap-2">
+              <View className={`h-2.5 w-5 rounded-full ${PHASE_STYLES[phase].background}`} />
+              <Typography className="text-muted text-xs">{PHASE_STYLES[phase].label}</Typography>
+            </View>
+          ))}
           <View className="flex-row items-center gap-2">
-            <View className="bg-accent h-2.5 w-8 rounded-full" />
-            <Typography className="text-muted text-xs">Most likely week (50%)</Typography>
-          </View>
-          <View className="flex-row items-center gap-2">
-            <View className="bg-accent/15 h-2.5 w-8 rounded-full" />
-            <Typography className="text-muted text-xs">Full range (95%)</Typography>
+            <View className="bg-accent h-2.5 w-2.5 rounded-full" />
+            <Typography className="text-muted text-xs">Predicted period range</Typography>
           </View>
         </View>
         <Typography className="text-muted text-center text-xs">
-          Shading is darkest at the center estimate and fades toward the range edges.
+          Phase shades are estimates. Tap any date for productivity, training, and nutrition
+          guidance.
         </Typography>
+      </Card>
+      <Card className="gap-4 p-5">
+        <View className="gap-1">
+          <Typography type="h4">{format(selectedDate, 'EEEE, MMMM d')}</Typography>
+          {selectedPhaseStyle && selectedGuidance.status === 'available' ? (
+            <Typography className="text-muted text-sm">
+              {selectedPhaseStyle.label} phase estimate · {selectedGuidance.phaseReason}
+            </Typography>
+          ) : null}
+        </View>
+        {selectedGuidance.status === 'low-confidence' ? (
+          <View className="bg-surface-secondary gap-2 rounded-xl p-4">
+            <Typography className="font-semibold">Phase guidance is not reliable yet</Typography>
+            <Typography className="text-muted text-sm leading-6">
+              {selectedGuidance.reason}
+            </Typography>
+          </View>
+        ) : (
+          <>
+            {selectedGuidance.override ? (
+              <View className="bg-surface-secondary gap-2 rounded-xl p-4">
+                <Typography className="font-semibold">Your logged signals take priority</Typography>
+                <Typography className="text-muted text-sm leading-6">
+                  {selectedGuidance.override.phaseSuggested} {selectedGuidance.override.signalsSaid}{' '}
+                  {selectedGuidance.override.doInstead}
+                </Typography>
+              </View>
+            ) : null}
+            {selectedGuidance.items.map((item) => (
+              <View key={item.label} className="gap-1">
+                <Typography className="font-semibold">{item.label}</Typography>
+                <Typography className="text-sm leading-6">{item.guidance}</Typography>
+                <Typography className="text-muted text-xs leading-5">
+                  Why: {item.reasoning}
+                </Typography>
+              </View>
+            ))}
+          </>
+        )}
       </Card>
       <Card className="gap-3 p-5">
         <Typography type="h4">Why this range?</Typography>

@@ -73,6 +73,15 @@
       --separator: oklch(82% 0.06 356);
       --focus: var(--accent);
       --link: var(--accent);
+
+      --color-phase-menstrual: oklch(90% 0.055 8);
+      --color-phase-menstrual-marker: oklch(56% 0.14 8);
+      --color-phase-follicular: oklch(94% 0.045 55);
+      --color-phase-follicular-marker: oklch(63% 0.11 55);
+      --color-phase-ovulatory: oklch(91% 0.052 315);
+      --color-phase-ovulatory-marker: oklch(57% 0.11 315);
+      --color-phase-luteal: oklch(91% 0.045 350);
+      --color-phase-luteal-marker: oklch(52% 0.09 350);
     }
 
     @variant dark {
@@ -106,6 +115,15 @@
       --separator: oklch(82% 0.06 356);
       --focus: var(--accent);
       --link: var(--accent);
+
+      --color-phase-menstrual: oklch(90% 0.055 8);
+      --color-phase-menstrual-marker: oklch(56% 0.14 8);
+      --color-phase-follicular: oklch(94% 0.045 55);
+      --color-phase-follicular-marker: oklch(63% 0.11 55);
+      --color-phase-ovulatory: oklch(91% 0.052 315);
+      --color-phase-ovulatory-marker: oklch(57% 0.11 315);
+      --color-phase-luteal: oklch(91% 0.045 350);
+      --color-phase-luteal-marker: oklch(52% 0.09 350);
     }
   }
 }

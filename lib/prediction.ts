@@ -357,23 +357,29 @@ export function calculateDailyGuidance(
   if (!prediction.ovulationReliable) {
     return {
       status: 'low-confidence',
-      reason: `The full prediction window is ${prediction.confidenceWindowDays * 2 + 1} days, so today’s cycle phase cannot be estimated reliably yet. Log more period starts to narrow the range.`,
+      reason: `The full prediction window is ${prediction.confidenceWindowDays * 2 + 1} days, so the cycle phase cannot be estimated reliably yet. Log more period starts to narrow the range.`,
     };
   }
 
-  const todayDate = parseISO(today);
-  const cycleDay = differenceInCalendarDays(todayDate, parseISO(latestStart)) + 1;
+  const targetDate = parseISO(today);
+  const rawCycleDay = differenceInCalendarDays(targetDate, parseISO(latestStart)) + 1;
+  const estimatedCycleDays = Math.max(10, prediction.calculationDetails.roundedEstimateDays);
+  const cycleDay =
+    ((((rawCycleDay - 1) % estimatedCycleDays) + estimatedCycleDays) % estimatedCycleDays) + 1;
   const recordedPeriodLength = latestPeriod?.periodLengthDays
     ? latestPeriod.periodLengthDays
     : latestPeriod?.endDate
       ? differenceInCalendarDays(parseISO(latestPeriod.endDate), parseISO(latestStart)) + 1
       : 5;
   const menstrualDays = Math.min(10, Math.max(2, recordedPeriodLength));
-  const daysFromOvulation = differenceInCalendarDays(todayDate, prediction.ovulationDate);
+  const estimatedOvulationDay = Math.max(
+    menstrualDays + 2,
+    estimatedCycleDays - Math.round(prediction.calculationDetails.ovulationOffsetDays),
+  );
   let phase: CyclePhase;
   if (cycleDay <= menstrualDays) phase = 'menstrual';
-  else if (Math.abs(daysFromOvulation) <= 1) phase = 'ovulatory';
-  else if (daysFromOvulation < 0) phase = 'follicular';
+  else if (Math.abs(cycleDay - estimatedOvulationDay) <= 1) phase = 'ovulatory';
+  else if (cycleDay < estimatedOvulationDay) phase = 'follicular';
   else phase = 'luteal';
 
   const phaseGuidance = PHASE_GUIDANCE[phase];
