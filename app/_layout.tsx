@@ -175,7 +175,7 @@ export default function RootLayout() {
   if (!startupComplete && loaded) {
     return (
       <View
-        accessibilityLabel="Ovary"
+        accessibilityLabel="Ovariety"
         onLayout={completeStartup}
         style={{
           alignItems: 'center',
@@ -191,7 +191,7 @@ export default function RootLayout() {
             fontSize: 48,
           }}
         >
-          Ovary
+          Ovariety
         </Text>
       </View>
     );

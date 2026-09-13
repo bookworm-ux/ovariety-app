@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Image, KeyboardAvoidingView, Platform, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, View } from 'react-native';
 import { Button, Card, Description, Input, Label, TextField, Typography } from 'heroui-native';
 import { router, useLocalSearchParams } from 'expo-router';
 
@@ -59,12 +59,19 @@ export default function OnboardingScreen() {
       <SafeAreaView className="flex-1" style={{ backgroundColor: '#FDF3F6' }}>
         <View className="flex-1 px-6 pt-10 pb-6">
           <View className="items-center">
-            <Image
-              source={require('@/assets/ovary-wordmark.png')}
-              resizeMode="contain"
-              accessibilityLabel="Ovary"
-              style={{ width: 260, height: 220 }}
-            />
+            <View
+              accessible
+              accessibilityRole="header"
+              accessibilityLabel="Ovariety"
+              className="h-[220px] items-center justify-center"
+            >
+              <Typography
+                className="text-foreground text-center text-6xl"
+                style={{ fontFamily: 'PlayfairDisplay_600SemiBold' }}
+              >
+                Ovariety
+              </Typography>
+            </View>
             <Typography
               className="text-foreground max-w-sm text-center text-3xl leading-10"
               style={{ fontFamily: 'PlayfairDisplay_600SemiBold' }}
