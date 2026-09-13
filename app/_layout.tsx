@@ -172,7 +172,7 @@ export default function RootLayout() {
         >
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding" options={{ title: 'Set up', headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ title: 'Ovary', headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ title: 'Today', headerShown: false }} />
           <Stack.Screen name="labs" options={{ title: 'Lab values', presentation: 'modal' }} />
           <Stack.Screen name="account" options={{ title: 'Account' }} />
           <Stack.Screen name="prediction" options={{ title: 'Your prediction' }} />
