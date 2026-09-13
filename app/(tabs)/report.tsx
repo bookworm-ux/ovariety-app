@@ -151,11 +151,13 @@ export default function ReportScreen() {
         )}
       </Card>
       <Card className="gap-4 p-5">
-        <Typography type="h4">Symptom frequency</Typography>
+        <View className="gap-1">
+          <Typography type="h4">Symptom frequency</Typography>
+          <Typography className="text-muted text-sm">
+            How often each symptom appears across your period and daily logs.
+          </Typography>
+        </View>
         <SymptomFrequencyBars counts={stats.symptomCounts} />
-        {Object.values(stats.symptomCounts).every((value) => value === 0) ? (
-          <Typography className="text-muted text-sm">No symptoms logged yet.</Typography>
-        ) : null}
       </Card>
       <Card className="gap-3 p-5">
         <Typography type="h4">Automated pattern flags</Typography>
