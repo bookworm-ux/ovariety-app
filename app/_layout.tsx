@@ -11,8 +11,8 @@ import {
 } from '@expo-google-fonts/inter';
 import { PlayfairDisplay_600SemiBold } from '@expo-google-fonts/playfair-display';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
-import { Platform } from 'react-native';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Platform, Text, View } from 'react-native';
 import * as DevClient from 'expo-dev-client';
 import { HeroUINativeProvider, useThemeColor } from 'heroui-native';
 import { Uniwind } from 'uniwind';
@@ -66,6 +66,17 @@ export default function RootLayout() {
     Inter_700Bold,
     PlayfairDisplay_600SemiBold,
   });
+  const [startupComplete, setStartupComplete] = useState(false);
+  const revealStartedRef = useRef(false);
+
+  const completeStartup = useCallback(() => {
+    if (revealStartedRef.current) return;
+
+    revealStartedRef.current = true;
+    void SplashScreen.hideAsync().finally(() => {
+      setStartupComplete(true);
+    });
+  }, []);
 
   useEffect(() => {
     if (!hydrated) void hydrateHealthData();
@@ -152,13 +163,38 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (loaded || error) {
-      void SplashScreen.hideAsync();
+    if (error) {
+      completeStartup();
     }
-  }, [loaded, error]);
+  }, [completeStartup, error]);
 
   if (!loaded && !error) {
     return null;
+  }
+
+  if (!startupComplete && loaded) {
+    return (
+      <View
+        accessibilityLabel="Ovary"
+        onLayout={completeStartup}
+        style={{
+          alignItems: 'center',
+          backgroundColor: '#F6DDE5',
+          flex: 1,
+          justifyContent: 'center',
+        }}
+      >
+        <Text
+          style={{
+            color: '#512A3C',
+            fontFamily: 'PlayfairDisplay_600SemiBold',
+            fontSize: 48,
+          }}
+        >
+          Ovary
+        </Text>
+      </View>
+    );
   }
 
   return (
