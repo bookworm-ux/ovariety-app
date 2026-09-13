@@ -8,6 +8,35 @@ export interface CycleInterval {
   length: number;
 }
 
+export interface PredictionCalculationDetails {
+  cycleFilter: {
+    minimumDays: number;
+    maximumDays: number;
+    validIntervals: number;
+  };
+  priorSource: 'condition' | 'pcos-pattern';
+  pcosClassification?: {
+    longCycleThresholdDays: number;
+    severeFractionThreshold: number;
+    longCycles: number;
+    longCycleFraction: number;
+  };
+  tshAdjustment?: {
+    threshold: number;
+    multiplier: number;
+    capDays: number;
+    appliedDays: number;
+  };
+  weighting?: {
+    priorWeight: number;
+    historyWeight: number;
+    estimateUncertainty: number;
+  };
+  confidenceMultiplier: number;
+  ovulationOffsetDays: number;
+  roundedEstimateDays: number;
+}
+
 export interface PredictionResult {
   conditionMean: number;
   conditionSpread: number;
@@ -24,8 +53,19 @@ export interface PredictionResult {
   ownSpread?: number;
   usedFallbackCycles: boolean;
   pcosPattern?: 'milder' | 'severe';
+  calculationDetails: PredictionCalculationDetails;
   explanation: string;
 }
+
+const MINIMUM_CYCLE_DAYS = 10;
+const MAXIMUM_CYCLE_DAYS = 90;
+const PCOS_LONG_CYCLE_DAYS = 55;
+const PCOS_SEVERE_FRACTION = 0.3;
+const TSH_THRESHOLD = 4;
+const TSH_ADJUSTMENT_PER_UNIT = 0.8;
+const TSH_ADJUSTMENT_CAP_DAYS = 15;
+const CONFIDENCE_MULTIPLIER = 1.96;
+const OVULATION_OFFSET_DAYS = 12.4;
 
 const BASE_PRIORS: Record<Exclude<Condition, 'pcos'>, { mean: number; spread: number }> = {
   none: { mean: 29.3, spread: 3.5 },
@@ -48,9 +88,12 @@ export function getCycleIntervals(profile: Profile, periods: PeriodEntry[]): Cyc
 }
 
 function filteredIntervals(intervals: CycleInterval[]) {
-  const valid = intervals.filter(({ length }) => length >= 10 && length <= 90);
+  const valid = intervals.filter(
+    ({ length }) => length >= MINIMUM_CYCLE_DAYS && length <= MAXIMUM_CYCLE_DAYS,
+  );
   return {
     intervals: valid.length > 0 ? valid : intervals,
+    validCount: valid.length,
     usedFallback: intervals.length > 0 && valid.length === 0,
   };
 }
@@ -76,28 +119,45 @@ type CyclePrior = {
   mean: number;
   spread: number;
   pcosPattern?: 'milder' | 'severe';
+  pcosClassification?: PredictionCalculationDetails['pcosClassification'];
+  tshAdjustment?: PredictionCalculationDetails['tshAdjustment'];
 };
 
 function getPrior(condition: Condition, labs: LabEntry[], cycleLengths: number[]): CyclePrior {
   if (condition === 'pcos') {
-    const longCycleFraction =
-      cycleLengths.length > 0
-        ? cycleLengths.filter((length) => length >= 55).length / cycleLengths.length
-        : 0;
-    const isSevere = longCycleFraction >= 0.3;
+    const longCycles = cycleLengths.filter((length) => length >= PCOS_LONG_CYCLE_DAYS).length;
+    const longCycleFraction = cycleLengths.length > 0 ? longCycles / cycleLengths.length : 0;
+    const isSevere = longCycleFraction >= PCOS_SEVERE_FRACTION;
     return {
       mean: isSevere ? 60 : 43,
       spread: isSevere ? 16 : 10,
       pcosPattern: isSevere ? 'severe' : 'milder',
+      pcosClassification: {
+        longCycleThresholdDays: PCOS_LONG_CYCLE_DAYS,
+        severeFractionThreshold: PCOS_SEVERE_FRACTION,
+        longCycles,
+        longCycleFraction,
+      },
     };
   }
 
   const prior = { ...BASE_PRIORS[condition] };
   const tsh = mostRecentValue(labs, 'tsh');
-  if (condition === 'hypothyroid' && tsh !== undefined && tsh > 4) {
-    prior.mean += Math.min(15, (tsh - 4) * 0.8);
+  let tshAdjustment: PredictionCalculationDetails['tshAdjustment'];
+  if (condition === 'hypothyroid') {
+    const appliedDays =
+      tsh !== undefined && tsh > TSH_THRESHOLD
+        ? Math.min(TSH_ADJUSTMENT_CAP_DAYS, (tsh - TSH_THRESHOLD) * TSH_ADJUSTMENT_PER_UNIT)
+        : 0;
+    prior.mean += appliedDays;
+    tshAdjustment = {
+      threshold: TSH_THRESHOLD,
+      multiplier: TSH_ADJUSTMENT_PER_UNIT,
+      capDays: TSH_ADJUSTMENT_CAP_DAYS,
+      appliedDays,
+    };
   }
-  return prior;
+  return { ...prior, tshAdjustment };
 }
 
 export function calculatePrediction(
@@ -106,7 +166,7 @@ export function calculatePrediction(
   labs: LabEntry[],
 ): PredictionResult {
   const availableIntervals = getCycleIntervals(profile, periods);
-  const { intervals, usedFallback } = filteredIntervals(availableIntervals);
+  const { intervals, validCount, usedFallback } = filteredIntervals(availableIntervals);
   const cycleLengths = intervals.map(({ length }) => length);
   const prior = getPrior(profile.condition, labs, cycleLengths);
   const n = cycleLengths.length;
@@ -114,19 +174,21 @@ export function calculatePrediction(
   let predictionSpread = prior.spread;
   let ownAverage: number | undefined;
   let ownSpread: number | undefined;
+  let weighting: PredictionCalculationDetails['weighting'];
 
   if (n > 0) {
     ownAverage = average(cycleLengths);
     ownSpread = Math.max(1, n >= 2 ? sampleStandardDeviation(cycleLengths) : prior.spread);
     const priorWeight = 1 / prior.spread ** 2;
-    const dataWeight = n / ownSpread ** 2;
+    const historyWeight = n / ownSpread ** 2;
     estimateDays =
-      (dataWeight * ownAverage + priorWeight * prior.mean) / (dataWeight + priorWeight);
-    const uncertaintyInEstimate = 1 / (dataWeight + priorWeight);
-    predictionSpread = Math.sqrt(uncertaintyInEstimate + ownSpread ** 2);
+      (historyWeight * ownAverage + priorWeight * prior.mean) / (historyWeight + priorWeight);
+    const estimateUncertainty = 1 / (historyWeight + priorWeight);
+    predictionSpread = Math.sqrt(estimateUncertainty + ownSpread ** 2);
+    weighting = { priorWeight, historyWeight, estimateUncertainty };
   }
 
-  const confidenceWindowDays = Math.round(predictionSpread * 1.96);
+  const confidenceWindowDays = Math.round(predictionSpread * CONFIDENCE_MULTIPLIER);
   const latestStart = [
     ...new Set([profile.lastPeriodStartDate, ...periods.map((item) => item.startDate)]),
   ]
@@ -144,13 +206,27 @@ export function calculatePrediction(
     predictedDate,
     rangeStart: addDays(predictedDate, -confidenceWindowDays),
     rangeEnd: addDays(predictedDate, confidenceWindowDays),
-    ovulationDate: addDays(predictedDate, -Math.round(12.4)),
+    ovulationDate: addDays(predictedDate, -Math.round(OVULATION_OFFSET_DAYS)),
     cyclesUsed: n,
     cyclesAvailable: availableIntervals.length,
     ownAverage,
     ownSpread,
     usedFallbackCycles: usedFallback,
-    pcosPattern: 'pcosPattern' in prior ? prior.pcosPattern : undefined,
+    pcosPattern: prior.pcosPattern,
+    calculationDetails: {
+      cycleFilter: {
+        minimumDays: MINIMUM_CYCLE_DAYS,
+        maximumDays: MAXIMUM_CYCLE_DAYS,
+        validIntervals: validCount,
+      },
+      priorSource: profile.condition === 'pcos' ? 'pcos-pattern' : 'condition',
+      pcosClassification: prior.pcosClassification,
+      tshAdjustment: prior.tshAdjustment,
+      weighting,
+      confidenceMultiplier: CONFIDENCE_MULTIPLIER,
+      ovulationOffsetDays: OVULATION_OFFSET_DAYS,
+      roundedEstimateDays: Math.round(estimateDays),
+    },
     explanation:
       n === 0
         ? `With no completed cycles yet, this range starts from the research-based estimate for ${conditionName}.`
