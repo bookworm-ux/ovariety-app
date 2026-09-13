@@ -11,9 +11,8 @@ export default function TabLayout() {
   const { theme } = useUniwind();
   const hydrated = useHealthStore((state) => state.hydrated);
   const onboardingComplete = useHealthStore((state) => state.profile?.onboardingComplete ?? false);
-  const [background, foreground, border, accent, muted] = useThemeColor([
+  const [background, border, accent, muted] = useThemeColor([
     'background',
-    'foreground',
     'border',
     'accent',
     'muted',
@@ -34,10 +33,7 @@ export default function TabLayout() {
       <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
       <Tabs
         screenOptions={{
-          headerStyle: { backgroundColor: background },
-          headerTintColor: foreground,
-          headerTitleStyle: { color: foreground },
-          headerShadowVisible: false,
+          headerShown: false,
           sceneStyle: { backgroundColor: background },
           tabBarStyle: { backgroundColor: background, borderTopColor: border },
           tabBarActiveTintColor: accent,
