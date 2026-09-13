@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Alert, Platform, View } from 'react-native';
 import { Button, Card, Typography } from 'heroui-native';
+import { router } from 'expo-router';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
@@ -96,6 +97,16 @@ export default function ReportScreen() {
         <Row label="Age" value={String(profile.age)} />
         <Row label="Condition" value={CONDITION_LABELS[profile.condition]} />
         <Row label="Medications" value={profile.medications || 'None listed'} />
+      </Card>
+      <Card className="gap-3 p-5">
+        <Typography type="h4">Lab results</Typography>
+        <Typography className="text-muted text-sm leading-5">
+          Add condition-specific lab values, attach the original PDF, or do both. Saved results are
+          included in this report.
+        </Typography>
+        <Button variant="outline" onPress={() => router.push('/labs')}>
+          <Button.Label>Add lab values</Button.Label>
+        </Button>
       </Card>
       <Card className="gap-3 p-5">
         <Typography type="h4">Cycle stats</Typography>

@@ -81,9 +81,6 @@ export default function SettingsScreen() {
         >
           <Button.Label>Edit profile</Button.Label>
         </Button>
-        <Button variant="outline" onPress={() => router.push('/labs')}>
-          <Button.Label>Add lab values</Button.Label>
-        </Button>
       </Card>
       <PrivacyNote>
         Health data is stored locally on this device using the app’s private storage. It is not
