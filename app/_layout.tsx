@@ -9,6 +9,7 @@ import {
   Inter_700Bold,
   useFonts,
 } from '@expo-google-fonts/inter';
+import { PlayfairDisplay_600SemiBold } from '@expo-google-fonts/playfair-display';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
 import { useEffect } from 'react';
@@ -57,6 +58,7 @@ export default function RootLayout() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
+    PlayfairDisplay_600SemiBold,
   });
 
   useEffect(() => {
@@ -150,7 +152,7 @@ export default function RootLayout() {
         >
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="onboarding" options={{ title: 'Set up', headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ title: 'CycleWise', headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ title: 'Ovary', headerShown: false }} />
           <Stack.Screen name="labs" options={{ title: 'Lab values', presentation: 'modal' }} />
           <Stack.Screen name="prediction" options={{ title: 'Your prediction' }} />
         </Stack>

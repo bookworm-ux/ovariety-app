@@ -62,7 +62,10 @@ export default function OnboardingScreen() {
               accessibilityLabel="Ovary"
               style={{ width: 260, height: 220 }}
             />
-            <Typography className="text-foreground max-w-sm text-center text-3xl leading-10 font-semibold">
+            <Typography
+              className="text-foreground max-w-sm text-center text-3xl leading-10"
+              style={{ fontFamily: 'PlayfairDisplay_600SemiBold' }}
+            >
               Your cycle, without the 28-day assumption.
             </Typography>
             <Typography className="text-muted mt-4 max-w-sm text-center text-base leading-6 font-normal">
