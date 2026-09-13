@@ -2,11 +2,14 @@ import { type PropsWithChildren, useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { Button, Card, Typography } from 'heroui-native';
 import {
+  addDays,
+  addMonths,
   differenceInCalendarDays,
   eachDayOfInterval,
-  endOfWeek,
+  endOfMonth,
   format,
-  startOfWeek,
+  getDay,
+  startOfMonth,
 } from 'date-fns';
 
 import { EmptyProfile } from '@/components/EmptyProfile';
@@ -25,14 +28,23 @@ export default function PredictionScreen() {
   const periods = useHealthStore((state) => state.periods);
   const labs = useHealthStore((state) => state.labs);
   const [expanded, setExpanded] = useState(false);
+  const [displayedMonth, setDisplayedMonth] = useState(() => startOfMonth(new Date()));
   const prediction = useMemo(
     () => (profile ? calculatePrediction(profile, periods, labs) : null),
     [profile, periods, labs],
   );
   if (!profile || !prediction) return <EmptyProfile />;
-  const gridStart = startOfWeek(prediction.rangeStart);
-  const gridEnd = endOfWeek(prediction.rangeEnd);
-  const days = eachDayOfInterval({ start: gridStart, end: gridEnd });
+  const monthStart = startOfMonth(displayedMonth);
+  const monthEnd = endOfMonth(displayedMonth);
+  const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
+  const leadingDayCount = getDay(monthStart);
+  const calendarCells = [
+    ...Array.from({ length: leadingDayCount }, (_, offset) => ({
+      day: null,
+      key: `empty-${format(addDays(monthStart, offset - leadingDayCount), 'yyyy-MM-dd')}`,
+    })),
+    ...monthDays.map((day) => ({ day, key: format(day, 'yyyy-MM-dd') })),
+  ];
 
   return (
     <Screen
@@ -51,6 +63,27 @@ export default function PredictionScreen() {
         />
       </Card>
       <Card className="gap-3 p-4">
+        <View className="flex-row items-center justify-between gap-3">
+          <Button
+            accessibilityLabel="Show previous month"
+            className="min-w-24"
+            variant="outline"
+            onPress={() => setDisplayedMonth((month) => addMonths(month, -1))}
+          >
+            <Button.Label>Previous</Button.Label>
+          </Button>
+          <Typography className="flex-1 text-center" type="h4">
+            {format(displayedMonth, 'MMMM yyyy')}
+          </Typography>
+          <Button
+            accessibilityLabel="Show next month"
+            className="min-w-24"
+            variant="outline"
+            onPress={() => setDisplayedMonth((month) => addMonths(month, 1))}
+          >
+            <Button.Label>Next</Button.Label>
+          </Button>
+        </View>
         <View className="flex-row justify-between">
           {WEEKDAYS.map((day) => (
             <Typography key={day} className="text-muted w-[13%] text-center text-xs">
@@ -59,7 +92,10 @@ export default function PredictionScreen() {
           ))}
         </View>
         <View className="flex-row flex-wrap">
-          {days.map((day) => {
+          {calendarCells.map(({ day, key }) => {
+            if (!day) {
+              return <View key={key} className="m-[0.6%] aspect-square w-[13%]" />;
+            }
             const inside = day >= prediction.rangeStart && day <= prediction.rangeEnd;
             const insideMostLikely =
               day >= prediction.mostLikelyStart && day <= prediction.mostLikelyEnd;
@@ -88,7 +124,7 @@ export default function PredictionScreen() {
                   : 'outside the prediction range';
             return (
               <View
-                key={day.toISOString()}
+                key={key}
                 accessible
                 accessibilityLabel={`${format(day, 'MMMM d')}, ${rangeLabel}`}
                 className={`m-[0.6%] aspect-square w-[13%] items-center justify-center rounded-full ${probabilityClass}`}
