@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, View } from 'react-native';
-import { Button, Card, Input, Label, TextField, Typography } from 'heroui-native';
+import { Button, Card, Chip, Input, Label, TextField, Typography } from 'heroui-native';
 import { router } from 'expo-router';
 
 import { EmptyProfile } from '@/components/EmptyProfile';
@@ -135,20 +135,38 @@ export default function LogScreen() {
               Tap a symptom, then choose severity.
             </Typography>
           </View>
-          {SYMPTOMS.map((symptom) => (
-            <View key={symptom} className="gap-2">
-              <Button
-                variant={symptoms[symptom] ? 'secondary' : 'outline'}
-                onPress={() => toggleSymptom(symptom)}
-              >
-                <Button.Label>{SYMPTOM_LABELS[symptom]}</Button.Label>
-              </Button>
-              {symptoms[symptom] ? (
-                <RatingPicker
-                  value={symptoms[symptom]}
-                  onChange={(value) => setSymptoms((current) => ({ ...current, [symptom]: value }))}
-                />
-              ) : null}
+          <View className="flex-row flex-wrap gap-2">
+            {SYMPTOMS.map((symptom) => {
+              const isSelected = symptoms[symptom] !== undefined;
+
+              return (
+                <Chip
+                  key={symptom}
+                  size="md"
+                  color={isSelected ? 'accent' : 'default'}
+                  variant={isSelected ? 'primary' : 'tertiary'}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: isSelected }}
+                  accessibilityLabel={`${SYMPTOM_LABELS[symptom]} symptom`}
+                  onPress={() => toggleSymptom(symptom)}
+                >
+                  <Chip.Label>{SYMPTOM_LABELS[symptom]}</Chip.Label>
+                </Chip>
+              );
+            })}
+          </View>
+          {SYMPTOMS.filter((symptom) => symptoms[symptom] !== undefined).map((symptom) => (
+            <View key={symptom} className="border-separator gap-2 border-t pt-4">
+              <View className="flex-row items-baseline justify-between gap-3">
+                <Typography className="font-semibold">
+                  {SYMPTOM_LABELS[symptom]} severity
+                </Typography>
+                <Typography className="text-muted text-xs">Defaults to 3</Typography>
+              </View>
+              <RatingPicker
+                value={symptoms[symptom]}
+                onChange={(value) => setSymptoms((current) => ({ ...current, [symptom]: value }))}
+              />
             </View>
           ))}
         </Card>

@@ -42,70 +42,70 @@
 @layer theme {
   :root {
     @variant light {
-      /* Ovary palette: blush ground, plum ink, rose marks, deep rose text, pink tint. */
-      --background: oklch(95.9% 0.009 0.1);
-      --foreground: oklch(37% 0.027 348.6);
+      /* Neutral ground and ink with the existing rose hue reserved for the accent. */
+      --background: oklch(97.5% 0.004 260);
+      --foreground: oklch(22% 0.018 260);
 
-      --surface: oklch(99% 0.003 0.1);
+      --surface: oklch(99.5% 0.002 260);
       --surface-foreground: var(--foreground);
-      --surface-secondary: oklch(92% 0.029 356.3);
+      --surface-secondary: oklch(93.5% 0.008 260);
       --surface-secondary-foreground: var(--foreground);
-      --surface-tertiary: var(--background);
+      --surface-tertiary: oklch(96% 0.005 260);
       --surface-tertiary-foreground: var(--foreground);
 
-      --overlay: oklch(99% 0.003 0.1);
+      --overlay: oklch(99.5% 0.002 260);
       --overlay-foreground: var(--foreground);
-      --muted: oklch(54.2% 0.109 358.9);
+      --muted: oklch(42% 0.018 260);
 
-      --default: oklch(92% 0.029 356.3);
+      --default: oklch(91.5% 0.01 260);
       --default-foreground: var(--foreground);
-      --accent: oklch(54.2% 0.109 358.9);
-      --accent-foreground: oklch(95.9% 0.009 0.1);
+      --accent: oklch(44% 0.13 358.9);
+      --accent-foreground: oklch(99% 0.002 260);
 
-      --field-background: oklch(99% 0.003 0.1);
+      --field-background: oklch(99.5% 0.002 260);
       --field-foreground: var(--foreground);
       --field-placeholder: var(--muted);
-      --field-border: oklch(69.8% 0.101 356.7);
+      --field-border: oklch(54% 0.018 260);
 
-      --segment: oklch(92% 0.029 356.3);
+      --segment: oklch(91.5% 0.01 260);
       --segment-foreground: var(--foreground);
-      --border: oklch(69.8% 0.101 356.7);
-      --separator: oklch(69.8% 0.101 356.7);
-      --focus: oklch(69.8% 0.101 356.7);
-      --link: oklch(54.2% 0.109 358.9);
+      --border: oklch(54% 0.018 260);
+      --separator: oklch(72% 0.012 260);
+      --focus: var(--accent);
+      --link: var(--accent);
     }
 
     @variant dark {
-      --background: oklch(95.9% 0.009 0.1);
-      --foreground: oklch(37% 0.027 348.6);
+      --background: oklch(97.5% 0.004 260);
+      --foreground: oklch(22% 0.018 260);
 
-      --surface: oklch(99% 0.003 0.1);
+      --surface: oklch(99.5% 0.002 260);
       --surface-foreground: var(--foreground);
-      --surface-secondary: oklch(92% 0.029 356.3);
+      --surface-secondary: oklch(93.5% 0.008 260);
       --surface-secondary-foreground: var(--foreground);
-      --surface-tertiary: var(--background);
+      --surface-tertiary: oklch(96% 0.005 260);
       --surface-tertiary-foreground: var(--foreground);
 
-      --overlay: oklch(99% 0.003 0.1);
+      --overlay: oklch(99.5% 0.002 260);
       --overlay-foreground: var(--foreground);
-      --muted: oklch(54.2% 0.109 358.9);
+      --muted: oklch(42% 0.018 260);
 
-      --default: oklch(92% 0.029 356.3);
+      --default: oklch(91.5% 0.01 260);
       --default-foreground: var(--foreground);
-      --accent: oklch(54.2% 0.109 358.9);
-      --accent-foreground: oklch(95.9% 0.009 0.1);
+      --accent: oklch(44% 0.13 358.9);
+      --accent-foreground: oklch(99% 0.002 260);
 
-      --field-background: oklch(99% 0.003 0.1);
+      --field-background: oklch(99.5% 0.002 260);
       --field-foreground: var(--foreground);
       --field-placeholder: var(--muted);
-      --field-border: oklch(69.8% 0.101 356.7);
+      --field-border: oklch(54% 0.018 260);
 
-      --segment: oklch(92% 0.029 356.3);
+      --segment: oklch(91.5% 0.01 260);
       --segment-foreground: var(--foreground);
-      --border: oklch(69.8% 0.101 356.7);
-      --separator: oklch(69.8% 0.101 356.7);
-      --focus: oklch(69.8% 0.101 356.7);
-      --link: oklch(54.2% 0.109 358.9);
+      --border: oklch(54% 0.018 260);
+      --separator: oklch(72% 0.012 260);
+      --focus: var(--accent);
+      --link: var(--accent);
     }
   }
 }
