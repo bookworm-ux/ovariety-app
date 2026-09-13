@@ -42,68 +42,68 @@
 @layer theme {
   :root {
     @variant light {
-      /* Neutral ground and ink with the existing rose hue reserved for the accent. */
-      --background: oklch(97.5% 0.004 260);
-      --foreground: oklch(22% 0.018 260);
+      /* CycleWise's original blush, mauve, rose, and plum palette. */
+      --background: oklch(97.3% 0.01 356);
+      --foreground: oklch(37% 0.029 349);
 
-      --surface: oklch(99.5% 0.002 260);
+      --surface: oklch(99% 0.006 356);
       --surface-foreground: var(--foreground);
-      --surface-secondary: oklch(93.5% 0.008 260);
+      --surface-secondary: oklch(92% 0.031 356);
       --surface-secondary-foreground: var(--foreground);
-      --surface-tertiary: oklch(96% 0.005 260);
+      --surface-tertiary: oklch(95.9% 0.009 356);
       --surface-tertiary-foreground: var(--foreground);
 
-      --overlay: oklch(99.5% 0.002 260);
+      --overlay: oklch(99% 0.006 356);
       --overlay-foreground: var(--foreground);
-      --muted: oklch(42% 0.018 260);
+      --muted: oklch(48% 0.045 351);
 
-      --default: oklch(91.5% 0.01 260);
+      --default: oklch(92% 0.031 356);
       --default-foreground: var(--foreground);
-      --accent: oklch(44% 0.13 358.9);
-      --accent-foreground: oklch(99% 0.002 260);
+      --accent: oklch(54.3% 0.112 358.5);
+      --accent-foreground: oklch(99% 0.006 356);
 
-      --field-background: oklch(99.5% 0.002 260);
+      --field-background: oklch(99% 0.006 356);
       --field-foreground: var(--foreground);
       --field-placeholder: var(--muted);
-      --field-border: oklch(54% 0.018 260);
+      --field-border: oklch(69.8% 0.101 356.5);
 
-      --segment: oklch(91.5% 0.01 260);
+      --segment: oklch(92% 0.031 356);
       --segment-foreground: var(--foreground);
-      --border: oklch(54% 0.018 260);
-      --separator: oklch(72% 0.012 260);
+      --border: oklch(69.8% 0.101 356.5);
+      --separator: oklch(82% 0.06 356);
       --focus: var(--accent);
       --link: var(--accent);
     }
 
     @variant dark {
-      --background: oklch(97.5% 0.004 260);
-      --foreground: oklch(22% 0.018 260);
+      --background: oklch(97.3% 0.01 356);
+      --foreground: oklch(37% 0.029 349);
 
-      --surface: oklch(99.5% 0.002 260);
+      --surface: oklch(99% 0.006 356);
       --surface-foreground: var(--foreground);
-      --surface-secondary: oklch(93.5% 0.008 260);
+      --surface-secondary: oklch(92% 0.031 356);
       --surface-secondary-foreground: var(--foreground);
-      --surface-tertiary: oklch(96% 0.005 260);
+      --surface-tertiary: oklch(95.9% 0.009 356);
       --surface-tertiary-foreground: var(--foreground);
 
-      --overlay: oklch(99.5% 0.002 260);
+      --overlay: oklch(99% 0.006 356);
       --overlay-foreground: var(--foreground);
-      --muted: oklch(42% 0.018 260);
+      --muted: oklch(48% 0.045 351);
 
-      --default: oklch(91.5% 0.01 260);
+      --default: oklch(92% 0.031 356);
       --default-foreground: var(--foreground);
-      --accent: oklch(44% 0.13 358.9);
-      --accent-foreground: oklch(99% 0.002 260);
+      --accent: oklch(54.3% 0.112 358.5);
+      --accent-foreground: oklch(99% 0.006 356);
 
-      --field-background: oklch(99.5% 0.002 260);
+      --field-background: oklch(99% 0.006 356);
       --field-foreground: var(--foreground);
       --field-placeholder: var(--muted);
-      --field-border: oklch(54% 0.018 260);
+      --field-border: oklch(69.8% 0.101 356.5);
 
-      --segment: oklch(91.5% 0.01 260);
+      --segment: oklch(92% 0.031 356);
       --segment-foreground: var(--foreground);
-      --border: oklch(54% 0.018 260);
-      --separator: oklch(72% 0.012 260);
+      --border: oklch(69.8% 0.101 356.5);
+      --separator: oklch(82% 0.06 356);
       --focus: var(--accent);
       --link: var(--accent);
     }
